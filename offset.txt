@@ -1,0 +1,433 @@
+// =====================================
+// TYPE INFO ОФФСЕТЫ (Классы менеджеров)
+// =====================================
+PlayerManager_TypeInfo = 151547120 (0x9082DF0)
+GrenadeManager_TypeInfo = Из Metadata (ищи в дампе)
+BombManager_TypeInfo = Из Metadata (ищи в дампе)
+LevelTesting_TypeInfo = Из Metadata (ищи в дампе)
+
+// Смещения в TypeInfo:
+TypeInfo + 0x20 → parent (родительский класс)
+TypeInfo + 0x30 → staticFields (статические поля)
+
+// =====================================
+// ЦЕПОЧКА ДОСТУПА К МЕНЕДЖЕРАМ
+// =====================================
+// PlayerManager instance:
+// rpm(rpm(rpm(rpm(il2cpp_base + TypeInfo) + 0x30) + 0x130) + 0x0)
+
+// =====================================
+// ОФФСЕТЫ PLAYER MANAGER
+// =====================================
+PlayerManager + 0x58 → Dictionary<byte, PlayerController>
+PlayerManager + 0x78 → LocalPlayer
+
+// =====================================
+// ОФФСЕТЫ PLAYER CONTROLLER
+// =====================================
+PlayerController + 0x28 → _mainCameraHolder
+PlayerController + 0x30 → _fpsCameraHolder
+PlayerController + 0x38 → _fpsDirective
+PlayerController + 0x40 → PlayerLevelZonesController
+PlayerController + 0x48 → PlayerCharacterView
+PlayerController + 0x50 → PlayerCharacterView
+PlayerController + 0x58 → AGFDFCEBCGDFDGH
+PlayerController + 0x60 → DFGCHGCBDGAAHED
+PlayerController + 0x68 → AEBHAGGABFBBEEC
+PlayerController + 0x70 → EEHFDBBFEAFDADA
+PlayerController + 0x78 → bool
+PlayerController + 0x79 → team (GHFCAEEEDFHBDFB)
+PlayerController + 0x7C → float
+PlayerController + 0x80 → AimController
+PlayerController + 0x88 → WeaponryController
+PlayerController + 0x90 → MecanimController
+PlayerController + 0x98 → MovementController
+PlayerController + 0xA0 → ArmsAnimationController
+PlayerController + 0xA8 → PlayerHitController
+PlayerController + 0xB0 → PlayerOcclusionController
+PlayerController + 0xB8 → NetworkController
+PlayerController + 0xC0 → ArmsLodGroup
+PlayerController + 0xC8 → PlayerCharacterView
+PlayerController + 0xD0 → bool
+PlayerController + 0xD1 → bool
+PlayerController + 0xD4 → float
+PlayerController + 0xD8 → PlayerSoundController
+PlayerController + 0xE0 → PlayerMainCamera
+PlayerController + 0xE8 → PlayerFPSCamera
+PlayerController + 0xF0 → PlayerMarkerTrigger
+PlayerController + 0xF8 → Transform
+PlayerController + 0x100 → Controller[]
+PlayerController + 0x108 → Dictionary<Type, Controller>
+PlayerController + 0x110 → CharacterController
+PlayerController + 0x118 → SkinnedMeshLodGroup
+PlayerController + 0x120 → CharacterLodGroup
+PlayerController + 0x128 → bool
+PlayerController + 0x129 → bool
+PlayerController + 0x12C → CFFCGHCBFHAHHEG
+PlayerController + 0x130 → Nullable<int>
+PlayerController + 0x138 → Nullable<bool>
+PlayerController + 0x13C → Nullable<int>
+PlayerController + 0x148 → PhotonView
+PlayerController + 0x150 → int
+PlayerController + 0x154 → int
+PlayerController + 0x158 → PhotonPlayer
+
+// =====================================
+// ОФФСЕТЫ AIM CONTROLLER
+// =====================================
+AimController + 0x58 → sensitivityX
+AimController + 0x5C → sensitivityY
+AimController + 0x60 → minimumX
+AimController + 0x64 → maximumX
+AimController + 0x68 → FPSP_go
+AimController + 0x70 → spineDirector
+AimController + 0x78 → FPSCamera
+AimController + 0x80 → camTransform
+AimController + 0x88 → AimingParameters
+AimController + 0x90 → AimingData
+AimController + 0x98 → InterpolatorsBunch
+AimController + 0xA0 → TuningParams
+AimController + 0xA8 → _headDampingSpeed
+AimController + 0xB0 → PlayerController
+AimController + 0xB8 → MovementController
+AimController + 0xC0 → Transform
+AimController + 0xC8 → MecanimController
+AimController + 0xD0 → Transform
+AimController + 0xD8 → bool
+AimController + 0xE0 → DFGCHGCBDGAAHED
+AimController + 0xE8 → StateSimple<CFFCGHCBFHAHHEG>
+AimController + 0xF0 → Vector3
+AimController + 0x100 → StateSimple<WeaponOffsetState>
+AimController + 0x108 → StateSimple<MoveState>
+AimController + 0x1E0 → bool
+AimController + 0x1E4 → float
+AimController + 0x1E8 → float
+AimController + 0x1F0 → DECBFCFGEGCHBGE
+AimController + 0x208 → WeaponryController
+
+// =====================================
+// ОФФСЕТЫ AIMING DATA
+// =====================================
+AimingData + 0x10 → pitch
+AimingData + 0x14 → yaw
+AimingData + 0x18 → Vector3
+AimingData + 0x24 → Vector3
+AimingData + 0x30 → TransformTR
+AimingData + 0x38 → float
+AimingData + 0x3C → float
+
+// =====================================
+// ОФФСЕТЫ WEAPON CONTROLLER
+// =====================================
+WeaponController + 0x20 → PlayerController
+WeaponController + 0x28 → MecanimController
+WeaponController + 0x30 → WeaponAnimationController
+WeaponController + 0x38 → WeaponAnimationParameters
+WeaponController + 0x40 → VisibilityState
+WeaponController + 0x44 → CFFCGHCBFHAHHEG
+WeaponController + 0x48 → Action
+WeaponController + 0x50 → Action
+WeaponController + 0x58 → Action
+WeaponController + 0x60 → Transform
+WeaponController + 0x68 → Controller[]
+WeaponController + 0x70 → GABFGDDHBAGDCCD
+WeaponController + 0x78 → GABFGDDHBAGDCCD
+WeaponController + 0x80 → float
+WeaponController + 0x84 → float
+WeaponController + 0x88 → WeaponLodGroup
+WeaponController + 0x90 → HandleState
+WeaponController + 0x94 → byte
+WeaponController + 0x98 → string
+WeaponController + 0xA0 → int
+WeaponController + 0xA4 → int
+WeaponController + 0xA8 → WeaponParameters
+WeaponController + 0xB0 → EEEEEHAHGFFDCBE
+WeaponController + 0xB8 → WeaponMap
+WeaponController + 0xC0 → byte
+WeaponController + 0xC1 → bool
+WeaponController + 0xC8 → WeaponStatTrackController
+WeaponController + 0xD0 → WeaponMaterialController
+WeaponController + 0xD8 → skinId
+WeaponController + 0xE0 → HCFHEDEDCGCFCGG
+WeaponController + 0xE8 → FCHAEBDABCEGHDD
+WeaponController + 0xF0 → HACAFFEEFDCEBBF
+
+// =====================================
+// ОФФСЕТЫ GUN CONTROLLER (ПАТРОНЫ)
+// =====================================
+GunController + 0xF8 → AACGDGGBDDBBAEE
+GunController + 0x100 → SafeFloat
+GunController + 0x108 → SafeFloat
+GunController + 0x110 → int (magazine ammo)
+GunController + 0x114 → int (reserve ammo)
+GunController + 0x118 → SafeInt ammo
+GunController + 0x120 → SafeInt reserve_ammo
+GunController + 0x128 → SafeBool
+GunController + 0x130 → SafeBool
+GunController + 0x138 → GunSoundController
+GunController + 0x140 → ShootingLoopState
+GunController + 0x148 → BEDFHEABCBBGFDD
+GunController + 0x150 → Action
+GunController + 0x158 → HGCGEFGDCHGHGHB
+GunController + 0x160 → GunParameters
+GunController + 0x168 → CGEGFADCDDEDHFE
+GunController + 0x170 → float
+GunController + 0x174 → float
+GunController + 0x178 → AHEBHDDHBAFDHGE
+GunController + 0x180 → StateSimple<StateType>
+GunController + 0x188 → StateSimple<AimingMode>
+GunController + 0x190 → List<EHBBBHDEBABAFCC>
+GunController + 0x198 → List<EHBBBHDEBABAFCC>
+GunController + 0x1A0 → Queue<DAABFAEDFCAHADB>
+GunController + 0x1A8 → List<DAABFAEDFCAHADB>
+GunController + 0x1B0 → List<ValueTuple<Vector3, Vector3>>
+GunController + 0x1B8 → Transform
+GunController + 0x1C0 → Transform
+GunController + 0x1C8 → Transform
+GunController + 0x1D0 → GunSoundParameters
+GunController + 0x1D8 → float
+GunController + 0x1DC → float
+GunController + 0x1E0 → int
+GunController + 0x1E4 → SafeFloat
+GunController + 0x1EC → SafeFloat
+GunController + 0x1F4 → SafeFloat
+GunController + 0x1FC → SafeFloat
+GunController + 0x208 → HFBBDAGDHGFBFCF
+GunController + 0x210 → List<ECCGDCBDADBECGB>
+GunController + 0x218 → bool
+GunController + 0x21C → float
+GunController + 0x220 → AccuracyData
+GunController + 0x228 → Dictionary<BACECDBGDEGGHBA, List<DCCCAHHEHGAFGDG>>
+GunController + 0x230 → Dictionary<BACECDBGDEGGHBA, HBBCGBFFEBEBEAG[]>
+GunController + 0x238 → float
+GunController + 0x23C → float
+GunController + 0x240 → float
+GunController + 0x244 → bool
+
+// =====================================
+// ОФФСЕТЫ MOVEMENT CONTROLLER
+// =====================================
+MovementController + 0x58 → PlayerController
+MovementController + 0x60 → PlayerOcclusionController
+MovementController + 0x68 → _neverIdle
+MovementController + 0x70 → Transform
+MovementController + 0x78 → AGFDFCEBCGDFDGH
+MovementController + 0x80 → float
+MovementController + 0x84 → float
+MovementController + 0x88 → CharacterController
+MovementController + 0x90 → Trigger
+MovementController + 0x98 → DBGGGBCFGAAHCBD[]
+MovementController + 0xA0 → AHAGDCCBADAEEDC
+MovementController + 0xA8 → PlayerTranslationParameters
+MovementController + 0xB0 → TranslationData
+MovementController + 0xB8 → FFEHCCGBDEDEADG
+MovementController + 0xC0 → characterTransform
+MovementController + 0xC8 → MecanimController
+MovementController + 0xD0 → float
+
+// =====================================
+// ПОЗИЦИЯ ИГРОКА (Transform)
+// =====================================
+Transform + 0x10 → x
+Transform + 0x14 → y
+Transform + 0x18 → z
+
+// =====================================
+// ОФФСЕТЫ LEVEL TESTING 
+// =====================================
+LevelTesting + 0x28 → Canvas
+LevelTesting + 0x30 → _inspectorMode
+LevelTesting + 0x38 → _mainCamera
+LevelTesting + 0x40 → _fpsCamera
+LevelTesting + 0x78 → _primaryWeapon
+LevelTesting + 0x79 → _secondaryWeapon
+LevelTesting + 0x7C → _gloves
+LevelTesting + 0x80 → _currentTeam
+LevelTesting + 0x84 → _viewMode
+LevelTesting + 0x88 → _maxTeamSize
+LevelTesting + 0x89 → _weaponDropEnabled
+LevelTesting + 0x8A → _bombEnabled
+LevelTesting + 0x8B → _grenadesEnabled
+LevelTesting + 0x8C → _infinityMagazine
+LevelTesting + 0x8D → _infinityGrenades
+LevelTesting + 0xC0 → Button _unlimitedHp
+LevelTesting + 0xC8 → Button _defaultHp
+LevelTesting + 0xD0 → Button _fireNonStop
+LevelTesting + 0x180 → PlayerController
+
+// =====================================
+// ОФФСЕТЫ PLAYER MARKER TRIGGER (ВИДИМОСТЬ)
+// =====================================
+PlayerMarkerTrigger + 0x24 → visibilityState (0 = видим, 1 = невидим)
+PlayerMarkerTrigger + 0x70 → Vector3
+PlayerMarkerTrigger + 0x80 → Collider
+PlayerMarkerTrigger + 0x88 → PlayerController
+PlayerMarkerTrigger + 0x90 → float
+PlayerMarkerTrigger + 0x94 → float
+PlayerMarkerTrigger + 0x98 → float
+
+// =====================================
+// ОФФСЕТЫ MARKER TRIGGER (БАЗОВЫЙ КЛАСС)
+// =====================================
+MarkerTrigger + 0x20 → RaycastMask
+MarkerTrigger + 0x24 → VisibilityState
+MarkerTrigger + 0x28 → VisibilityState
+MarkerTrigger + 0x2C → int
+MarkerTrigger + 0x30 → float
+MarkerTrigger + 0x34 → float
+MarkerTrigger + 0x38 → float
+MarkerTrigger + 0x3C → float
+MarkerTrigger + 0x40 → float
+MarkerTrigger + 0x44 → float
+MarkerTrigger + 0x48 → int
+MarkerTrigger + 0x4C → float
+MarkerTrigger + 0x50 → float
+MarkerTrigger + 0x58 → Camera
+MarkerTrigger + 0x60 → ObjectOccludee
+MarkerTrigger + 0x68 → Collider
+
+// =====================================
+// ОФФСЕТЫ PHOTON PLAYER
+// =====================================
+PhotonPlayer + 0x10 → CustomProperties (Hashtable)
+PhotonPlayer + 0x18 → ActorNumber
+PhotonPlayer + 0x20 → NickName
+PhotonPlayer + 0x28 → UserId
+PhotonPlayer + 0x30 → IsLocal
+PhotonPlayer + 0x31 → IsMasterClient
+PhotonPlayer + 0x38 → Properties
+PhotonPlayer + 0x40 → RoomReference
+
+// =====================================
+// ОФФСЕТЫ BOMB MANAGER
+// =====================================
+BombManager + 0x30 → List<BombSite>
+BombManager + 0x38 → List<BombSitesContainer>
+BombManager + 0x50 → int
+BombManager + 0x54 → int
+BombManager + 0x58 → Vector3
+BombManager + 0x64 → Vector3
+BombManager + 0x70 → Nullable<SafeFloat>
+BombManager + 0x7C → SafeFloat
+BombManager + 0x88 → WeaponryController
+BombManager + 0x90 → PlayerHitController
+BombManager + 0x98 → BGCEFADDHBHCCBE
+BombManager + 0xA0 → FFBECGCBFABACGG
+BombManager + 0xA8 → PlantedBombController
+BombManager + 0xB0 → BombParameters
+BombManager + 0xB8 → BombSoundParameters
+BombManager + 0xC0 → BombExtendedParameters
+BombManager + 0xC8 → bool
+BombManager + 0xC9 → bool
+BombManager + 0xCC → SafeFloat (таймер бомбы)
+BombManager + 0xD4 → SafeFloat
+BombManager + 0xDC → SafeBool (бомба установлена?)
+BombManager + 0xE8 → PhotonPlayer
+BombManager + 0xF0 → PhotonPlayer
+BombManager + 0xF8 → SafeBool
+BombManager + 0x100 → HBDFBHEABABHDBA
+BombManager + 0x108 → HBDFBHEABABHDBA
+BombManager + 0x110 → SafeFloat
+
+// =====================================
+// ОФФСЕТЫ GRENADE MANAGER
+// =====================================
+GrenadeManager + 0x30 → Dictionary<int, DroppedGrenadeController>
+GrenadeManager + 0x38 → HashSet<int>
+GrenadeManager + 0x40 → HashSet<Collider>
+GrenadeManager + 0x48 → List<BABADFGBFGFAHEE>
+GrenadeManager + 0x50 → GHBFCDHEBGCCGFH
+GrenadeManager + 0x58 → AACGDGGBDDBBAEE
+GrenadeManager + 0x60 → HGGFECBFBDCACFH
+GrenadeManager + 0x68 → int
+GrenadeManager + 0x70 → PlayerController
+GrenadeManager + 0x78 → DamageEffectController
+GrenadeManager + 0x80 → List<DroppedGrenadeController>
+GrenadeManager + 0x88 → HashSet<DGGEGFEGBAFGGCG>
+GrenadeManager + 0x90 → SafeBool
+GrenadeManager + 0x98 → SafeBool
+GrenadeManager + 0xA0 → SafeBool
+GrenadeManager + 0xA8 → SafeBool
+GrenadeManager + 0xB0 → SafeBool
+GrenadeManager + 0xB8 → SafeBool
+GrenadeManager + 0xC0 → SafeBool
+GrenadeManager + 0xC8 → SafeBool
+GrenadeManager + 0xD0 → PlayerManager
+
+// =====================================
+// ОФФСЕТЫ BIPED MAP (КОСТИ СКЕЛЕТА)
+// =====================================
+Head = 0x20
+Neck = 0x28
+Spine = 0x30
+Spine1 = 0x38
+Spine2 = 0x40
+LeftShoulder = 0x48
+LeftElbow = 0x50
+LeftHand = 0x58
+RightShoulder = 0x68
+RightElbow = 0x70
+RightHand = 0x78
+Hip = 0x88
+LeftThigh = 0x90
+LeftKnee = 0x98
+LeftFoot = 0xA0
+RightThigh = 0xB0
+RightKnee = 0xB8
+RightFoot = 0xC0
+
+// =====================================
+// ОФФСЕТЫ CAMERA 
+// =====================================
+Camera + 0x2E4 → worldToCameraMatrix
+Camera + 0x324 → projectionMatrix
+Camera + 0x18 → pixelWidth
+Camera + 0x1C → pixelHeight
+
+// =====================================
+// STRUCT SafeInt / SafeFloat (РАСШИФРОВКА)
+// =====================================
+struct SafeInt {
+    int _salt;   // +0x00 (XOR ключ)
+    int _value;  // +0x04 (зашифрованное значение)
+}
+
+struct SafeFloat {
+    int _salt;   // +0x00
+    int _value;  // +0x04
+}
+
+// Функции расшифровки (RVA):
+SafeInt.GGDHBCDHFEAGEDF() → 0x33B9664  // SafeInt → int
+SafeFloat.CBEHAFBAGHAAEFE() → 0x33B96DC  // SafeFloat → float
+
+// Ручная расшифровка:
+int DecodeSafeInt(int encrypted, int salt) { return encrypted ^ salt; }
+float DecodeSafeFloat(int encrypted, int salt) { int raw = encrypted ^ salt; return *(float*)&raw; }
+
+// =====================================
+// ЗДОРОВЬЕ И БРОНЯ (CustomProperties PhotonPlayer)
+// =====================================
+// Ключи для PhotonPlayer.CustomProperties:
+"health"      // здоровье (int)
+"armor"       // броня (int)
+"helmet"      // шлем (bool)
+"isDeath"     // мёртв ли (bool)
+"untouchable" // неуязвимость (bool)
+"spawn_time"  // время спавна
+"death_time"  // время смерти
+"killerId"    // ID убийцы
+
+// Методы доступа из класса ACHGEDAAAHAFGGD (RVA):
+ACHGEDAAAHAFGGD.HCBHEAACBFBCFCG() → 0x30101C4  // получить здоровье
+ACHGEDAAAHAFGGD.AGHCHBCFBDDFEEA() → 0x30102DC  // получить броню
+ACHGEDAAAHAFGGD.BEBEEFECECDFHFA() → 0x3010144  // получить шлем
+ACHGEDAAAHAFGGD.FAAEDCDHFCFGFDB() → 0x3010618  // проверить жив ли
+
+// =====================================
+// ПОЛЕЗНЫЕ RVA МЕТОДЫ
+// =====================================
+GunController.CDDFEBHFEHCFDDB() → 0x318113C  // получить ammo (SafeInt)
+GunController.FEBDFBFECACAFDC() → 0x31812A0  // получить reserve ammo (SafeInt)
+MovementController.AFFFCBHFHFCDFBC() → 0x303620C  // получить позицию (Vector3)
+WeaponManager.BAGDDHEGHBDCBHD() → 0x316A618  // получить текущее оружие
