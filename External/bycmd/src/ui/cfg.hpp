@@ -19,6 +19,17 @@ namespace esp {
     inline ImVec4 skeleton_col = ImVec4(162/255.f, 144/255.f, 225/255.f, 1.f);
 }
 
+namespace rage {
+    // Aimbot — writes into AimController.aimingData.current/smoothed pitch/yaw.
+    inline bool aim_enabled = false;
+    inline bool aim_draw_fov = false;
+    inline bool aim_fire_check = true;      // only active while firing
+    inline int  aim_bone = 0;               // 0=head, 1=neck, 2=spine, 3=hip
+    inline float aim_fov = 15.0f;           // degrees, target-search cone
+    inline float aim_smooth = 4.0f;         // 1 = snap, 10 = slow lerp
+    inline float aim_max_distance = 120.0f; // meters
+}
+
 }
 
 
