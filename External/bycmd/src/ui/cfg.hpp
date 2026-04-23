@@ -27,6 +27,25 @@ namespace rage {
     // Zeros GunController.Spread SafeFloat at +0x1E4. No random bullet
     // dispersion.
     inline bool no_spread = false;
+
+    // Bhop — multiplies JumpParameters.upwardSpeedDefault / JumpMoveSpeed
+    // while enabled. multiplier is clamped 1..10.
+    inline bool  bhop = false;
+    inline float bhop_multiplier = 2.5f;
+
+    // World FOV — overrides CameraScopeZoomer._fov while enabled.
+    // Clamped 30..120.
+    inline bool  world_fov = false;
+    inline float world_fov_value = 90.f;
+
+    // Aspect ratio — overrides NativeCamera aspect at +0x4f0 while enabled.
+    // Clamped 0.5..4.0. Useful for stretched model view.
+    inline bool  aspect_ratio = false;
+    inline float aspect_ratio_value = 2.0f;
+
+    // Fast plant — zeros BombParameters._plantDuration + its Nullable<SafeFloat>.
+    // Only takes effect for the bomber holding C4.
+    inline bool fast_plant = false;
 }
 
 }

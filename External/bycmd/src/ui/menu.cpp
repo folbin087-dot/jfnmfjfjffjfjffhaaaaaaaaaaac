@@ -112,6 +112,20 @@ namespace ui::menu {
         slider("Recoil vertical", &cfg::rage::recoil_vertical, 0.f, 1.f, a, "%.2f");
         separator(a);
         checkbox("No Spread", &cfg::rage::no_spread, a);
+        separator(a);
+        checkbox("Bhop", &cfg::rage::bhop, a);
+        separator(a);
+        slider("Bhop multiplier", &cfg::rage::bhop_multiplier, 1.f, 10.f, a, "%.1f");
+        separator(a);
+        checkbox("World FOV", &cfg::rage::world_fov, a);
+        separator(a);
+        slider("FOV value", &cfg::rage::world_fov_value, 30.f, 120.f, a, "%.0f");
+        separator(a);
+        checkbox("Aspect Ratio", &cfg::rage::aspect_ratio, a);
+        separator(a);
+        slider("Aspect value", &cfg::rage::aspect_ratio_value, 0.5f, 4.f, a, "%.2f");
+        separator(a);
+        checkbox("Fast Plant (C4 only)", &cfg::rage::fast_plant, a);
     }
 
     static void settings_tab(float a) {
