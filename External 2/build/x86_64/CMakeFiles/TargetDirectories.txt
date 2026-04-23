@@ -1,0 +1,3 @@
+C:/Users/hope/Downloads/ExtTest/External 2/build/x86_64/CMakeFiles/bycmd.dir
+C:/Users/hope/Downloads/ExtTest/External 2/build/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/hope/Downloads/ExtTest/External 2/build/x86_64/CMakeFiles/rebuild_cache.dir

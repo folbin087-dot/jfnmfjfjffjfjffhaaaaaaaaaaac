@@ -1,0 +1,25 @@
+# ninja log v7
+278	1978	7982352778023799	CMakeFiles/bycmd.dir/src/ui/bar.cpp.o	40bb653e6a637cd1
+10523	10647	7982352880494768	CMakeFiles/bycmd.dir/src/protect/oxorany.cpp.o	5591e413e3baf60c
+200	4952	7985942354472556	CMakeFiles/bycmd.dir/src/ui/menu.cpp.o	88799f4cf0f5bc23
+288	4222	7982352778123801	CMakeFiles/bycmd.dir/src/ui/widgets/widgets.cpp.o	7396330492211197
+10546	13945	7982352880704766	CMakeFiles/bycmd.dir/includes/draw/Android_draw/draw.cpp.o	b5091d3eb4c4764a
+10648	12809	7982352881732680	CMakeFiles/bycmd.dir/includes/draw/Android_touch/Touch.cpp.o	d40385076c256fdf
+36	1979	7985942352828060	CMakeFiles/bycmd.dir/src/main.cpp.o	2d6f5b09fce3b922
+13091	15420	7982352906163514	CMakeFiles/bycmd.dir/includes/draw/ImGui/imgui_tables.cpp.o	b0e112db0eba8da0
+15421	15754	7982352929468891	CMakeFiles/bycmd.dir/includes/draw/ImGui/backends/imgui_impl_android.cpp.o	70c90af0d62c6003
+206	7389	7985942354532354	CMakeFiles/bycmd.dir/src/func/visuals.cpp.o	8b994e26888da4bc
+15759	16142	7982352932850669	CMakeFiles/bycmd.dir/includes/draw/ImGui/backends/imgui_impl_opengl3.cpp.o	fb8cd77d18a4eb6f
+12821	16887	7982352903453014	CMakeFiles/bycmd.dir/includes/draw/ImGui/imgui_draw.cpp.o	2e25b6c1fa2f9206
+13947	19607	7982352914713430	CMakeFiles/bycmd.dir/includes/draw/ImGui/imgui_widgets.cpp.o	611f50cbcdde8d0f
+12223	19661	7982352897473691	CMakeFiles/bycmd.dir/includes/draw/ImGui/imgui.cpp.o	f5258cd5f273575c
+3494	7128	7985942387411723	CMakeFiles/bycmd.dir/src/func/aimbot.cpp.o	759dfcc182c305f1
+7389	7726	7985942426352589	bycmd.sh	7ec021054407087e
+298	2893	7982352778229860	CMakeFiles/bycmd.dir/src/ui/launcher.cpp.o	361c43ec8b3fb3f6
+1980	4132	7985942372264238	CMakeFiles/bycmd.dir/src/func/hitmarker.cpp.o	1d6193e9363c940e
+212	3603	7985942354582188	CMakeFiles/bycmd.dir/src/func/silhouette_overlay.cpp.o	8277eefcdcb693a8
+225	3494	7985942354711761	CMakeFiles/bycmd.dir/src/func/bullet_tracer.cpp.o	7b6950a3bc9e1ab8
+10077	10265	7982352876044664	CMakeFiles/bycmd.dir/src/other/process_mask.cpp.o	70654a27cf2b0f0e
+218	3889	7985942354651958	CMakeFiles/bycmd.dir/src/func/physics_sim.cpp.o	5240b5d93bc6a96e
+10266	12221	7982352878012353	CMakeFiles/bycmd.dir/src/other/injector.cpp.o	34bc309b71dc0856
+3603	5041	7985942388503327	CMakeFiles/bycmd.dir/src/func/exploits.cpp.o	495f55ffb02312d3

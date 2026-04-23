@@ -1,0 +1,25 @@
+# ninja log v7
+269	7024	7982352446191137	CMakeFiles/bycmd.dir/src/ui/bar.cpp.o	d1fcb54012bffd0b
+17779	17866	7982352621291927	CMakeFiles/bycmd.dir/src/protect/oxorany.cpp.o	38f4935cbc474702
+216	5870	7985942238865718	CMakeFiles/bycmd.dir/src/ui/menu.cpp.o	e3498add67418daa
+278	10118	7982352446274611	CMakeFiles/bycmd.dir/src/ui/widgets/widgets.cpp.o	132eae9947e714cc
+17867	20189	7982352622165487	CMakeFiles/bycmd.dir/includes/draw/Android_touch/Touch.cpp.o	b9e0bdc2dd112e2d
+52	2802	7985942237214378	CMakeFiles/bycmd.dir/src/main.cpp.o	9f62c27a333cb6de
+17844	22112	7982352621939786	CMakeFiles/bycmd.dir/includes/draw/Android_draw/draw.cpp.o	771d85ea74c3d85
+20191	23073	7982352645402224	CMakeFiles/bycmd.dir/includes/draw/ImGui/imgui_tables.cpp.o	d416a4376a38817a
+221	8028	7985942238915541	CMakeFiles/bycmd.dir/src/func/visuals.cpp.o	6b6b474a90dd3c3d
+23075	23443	7982352674284778	CMakeFiles/bycmd.dir/includes/draw/ImGui/backends/imgui_impl_android.cpp.o	b4752f30541d0dbf
+23449	23769	7982352677992996	CMakeFiles/bycmd.dir/includes/draw/ImGui/backends/imgui_impl_opengl3.cpp.o	50674b1644f0dcba
+19506	23842	7982352638569194	CMakeFiles/bycmd.dir/includes/draw/ImGui/imgui_draw.cpp.o	5084f7ba7e95876
+19157	26811	7982352635068400	CMakeFiles/bycmd.dir/includes/draw/ImGui/imgui.cpp.o	dcf94704605160a0
+22112	27861	7982352664657907	CMakeFiles/bycmd.dir/includes/draw/ImGui/imgui_widgets.cpp.o	269676767b76297a
+3689	7903	7985942273592334	CMakeFiles/bycmd.dir/src/func/aimbot.cpp.o	3e04d2b883703f4
+8028	8368	7985942316975266	bycmd.sh	6f9610728ab6cdcd
+286	9561	7982352446361308	CMakeFiles/bycmd.dir/src/ui/launcher.cpp.o	5a81ca4cc5ee2b87
+227	3882	7985942238975343	CMakeFiles/bycmd.dir/src/func/silhouette_overlay.cpp.o	b3b8be6e294c6217
+2803	5042	7985942264723190	CMakeFiles/bycmd.dir/src/func/hitmarker.cpp.o	73e5b7673eeba683
+241	3689	7985942239104911	CMakeFiles/bycmd.dir/src/func/bullet_tracer.cpp.o	cd69cbe50fb35134
+234	4100	7985942239035143	CMakeFiles/bycmd.dir/src/func/physics_sim.cpp.o	d435a384841a9e4f
+17498	17843	7982352618482616	CMakeFiles/bycmd.dir/src/other/process_mask.cpp.o	216ff6cf686b630a
+3882	5462	7985942275525877	CMakeFiles/bycmd.dir/src/func/exploits.cpp.o	a58dd0958fc27528
+17626	19504	7982352619759229	CMakeFiles/bycmd.dir/src/other/injector.cpp.o	fed554bb40765123
