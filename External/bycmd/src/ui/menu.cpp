@@ -34,7 +34,7 @@ namespace ui::menu {
     static float fh = 38.f;
     static float sth = 50.f;
 
-    static const char* tabs[] = {"Visuals", "Settings"};
+    static const char* tabs[] = {"Visuals", "Rage", "Settings"};
     static constexpr int tc = sizeof(tabs) / sizeof(tabs[0]);
 
     static const char* vstabs[] = {"ESP", "Other"};
@@ -108,6 +108,22 @@ namespace ui::menu {
             case 0: esp_tab(a); break;
             case 1: other_tab(a); break;
         }
+    }
+
+    static void rage_tab(float a) {
+        checkbox("Aimbot", &cfg::rage::aim_enabled, a);
+        separator(a);
+        checkbox("Fire check (only while shooting)", &cfg::rage::aim_fire_check, a);
+        separator(a);
+        checkbox("Draw FOV circle", &cfg::rage::aim_draw_fov, a);
+        separator(a);
+        combo("Target bone", &cfg::rage::aim_bone, {"Head", "Neck", "Spine", "Hip"}, a);
+        separator(a);
+        slider("FOV (deg)", &cfg::rage::aim_fov, 1.f, 90.f, a, "%.0f");
+        separator(a);
+        slider("Smoothing", &cfg::rage::aim_smooth, 1.f, 20.f, a, "%.1f");
+        separator(a);
+        slider("Max distance (m)", &cfg::rage::aim_max_distance, 10.f, 300.f, a, "%.0f");
     }
 
     static void settings_tab(float a) {
@@ -376,7 +392,8 @@ namespace ui::menu {
 
             switch (tab) {
                 case 0: visuals_tab(ma); break;
-                case 1: settings_tab(ma); break;
+                case 1: rage_tab(ma); break;
+                case 2: settings_tab(ma); break;
             }
 
             sm = ImGui::GetScrollMaxY();
