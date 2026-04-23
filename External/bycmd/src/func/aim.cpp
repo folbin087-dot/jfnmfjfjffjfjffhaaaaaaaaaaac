@@ -62,7 +62,12 @@ namespace {
     uint64_t get_aiming_data(uint64_t local_player) noexcept {
         uint64_t aim_controller = rpm<uint64_t>(local_player + oxorany(kAimControllerPtr));
         if (!is_valid_ptr(aim_controller)) return 0;
-        uint64_t aiming_data = aim_controller + oxorany(kAimingDataPtr);
+        // aimingData is a managed class reference (HBBCDDFGDBEHEFG at +0x90),
+        // so this slot holds a pointer that must be dereferenced — not an
+        // inline struct. Writing to aim_controller+0x90 would corrupt the
+        // reference itself.
+        uint64_t aiming_data = rpm<uint64_t>(aim_controller + oxorany(kAimingDataPtr));
+        if (!is_valid_ptr(aiming_data)) return 0;
         return aiming_data;
     }
 
@@ -75,6 +80,10 @@ namespace {
     }
 
     float normalize_angle(float a) noexcept {
+        // Guard against ±inf / NaN — a corrupted rpm<float> read combined
+        // with `inf - 360 == inf` would spin this loop forever and freeze
+        // the render thread.
+        if (!std::isfinite(a)) return 0.0f;
         while (a > 180.0f) a -= 360.0f;
         while (a < -180.0f) a += 360.0f;
         return a;
