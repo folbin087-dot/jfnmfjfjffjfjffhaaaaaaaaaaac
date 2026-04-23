@@ -167,6 +167,11 @@ void aim::tick() {
 
     float current_pitch = rpm<float>(aiming_data + oxorany(kCurrentPitch));
     float current_yaw = rpm<float>(aiming_data + oxorany(kCurrentYaw));
+    // If the remote-read angles are non-finite, normalize_angle(NaN)==0
+    // would produce a fake perfect-aim score for the first candidate and
+    // then propagate NaN into the lerped write at the end of the tick.
+    // Bail out — next frame will re-read valid values.
+    if (!std::isfinite(current_pitch) || !std::isfinite(current_yaw)) return;
 
     int local_team = rpm<uint8_t>(local_player + oxorany(0x79));
 
