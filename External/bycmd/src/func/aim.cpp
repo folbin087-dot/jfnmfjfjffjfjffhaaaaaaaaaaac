@@ -219,7 +219,12 @@ void aim::tick() {
         if (!biped) continue;
 
         Vector3 bone_pos = player::bone_position(biped, bone_offset);
-        if (!std::isfinite(bone_pos.x) || std::fabs(bone_pos.x) > 10000.f) continue;
+        // Validate all three components — a NaN .y or .z would flow through
+        // vector_to_pitch_yaw into normalize_angle, which maps NaN→0 and
+        // would falsely score this target as an exact aim match, beating
+        // every real target.
+        if (!std::isfinite(bone_pos.x) || !std::isfinite(bone_pos.y) || !std::isfinite(bone_pos.z)) continue;
+        if (std::fabs(bone_pos.x) > 10000.f || std::fabs(bone_pos.y) > 10000.f || std::fabs(bone_pos.z) > 10000.f) continue;
 
         float fov_delta = compute_fov_delta(eye, bone_pos, current_pitch, current_yaw);
         if (fov_delta < best_fov) {
