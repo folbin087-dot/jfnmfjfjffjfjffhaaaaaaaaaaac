@@ -60,6 +60,10 @@ namespace ui::menu {
         separator(a);
         checkbox("Distance", &cfg::esp::distance, a);
         separator(a);
+        checkbox("Skeleton", &cfg::esp::skeleton, a);
+        separator(a);
+        checkbox("Force visible (glow)", &cfg::esp::force_visible, a);
+        separator(a);
         combo("Box type", &cfg::esp::box_type, {"Full", "Corner"}, a);
         separator(a);
         slider("Box rounding", &cfg::esp::box_rounding, 0.f, 10.f, a, "%.0f");
@@ -71,6 +75,8 @@ namespace ui::menu {
         colorpick("Health color", &cfg::esp::health_col, a);
         separator(a);
         colorpick("Distance color", &cfg::esp::distance_col, a);
+        separator(a);
+        colorpick("Skeleton color", &cfg::esp::skeleton_col, a);
     }
 
     static void other_tab(float a) {

@@ -2,17 +2,21 @@
 #include "../game/game.hpp"
 #include "../game/math.hpp"
 #include "../game/player.hpp"
+#include "../other/memory.hpp"
 #include "../ui/theme/theme.hpp"
 #include "../ui/cfg.hpp"
 #include "../protect/oxorany.hpp"
 #include "imgui.h"
+#include <chrono>
 #include <cmath>
 #include <algorithm>
+#include <unordered_map>
 
 extern ImFont* espFont;
 
 void visuals::draw() {
-    bool any = cfg::esp::box || cfg::esp::name || cfg::esp::health || cfg::esp::distance;
+    bool any = cfg::esp::box || cfg::esp::name || cfg::esp::health
+            || cfg::esp::distance || cfg::esp::skeleton || cfg::esp::force_visible;
     if (!any) return;
 
     uint64_t PlayerManager = get_player_manager();
@@ -53,6 +57,19 @@ void visuals::draw() {
 
         float Distance = calculate_distance(PlayerPosition, LocalPosition);
         if (Distance > 500.f) continue;
+
+        // viewVisible write does not depend on on-screen visibility — force
+        // it regardless so the wallhack still works when the enemy is
+        // behind the camera.
+        if (cfg::esp::force_visible) {
+            force_visible_write(Player);
+        }
+
+        // Skeleton draws per-bone so it can be partially visible even if the
+        // box anchor points go off-screen; handle it before the box gate.
+        if (cfg::esp::skeleton) {
+            dskeleton(Player, ViewMatrix, 1.f);
+        }
 
         Vector3 HeadPosition(PlayerPosition.x, PlayerPosition.y + 1.67f, PlayerPosition.z);
 
@@ -96,6 +113,110 @@ void visuals::draw() {
             ddist(Distance, BoxMax.x, BoxMin.y, font_sz, 1.f);
         }
     }
+}
+
+// Bone pairs for skeleton lines. Offsets reference BipedMap slots
+// (dump.cs:63701 — Head=0x20, Neck=0x28, Spine=0x30, Spine1=0x38,
+// LeftShoulder=0x48, LeftUpperarm=0x50, LeftForearm=0x58, LeftHand=0x60,
+// RightShoulder=0x68, RightUpperarm=0x70, RightForearm=0x78, RightHand=0x80,
+// Hip=0x88, LeftUpLeg=0x90, LeftLeg=0x98, LeftFoot=0xA0,
+// RightUpLeg=0xB0, RightLeg=0xB8, RightFoot=0xC0).
+namespace {
+    struct BonePair { int from; int to; };
+    constexpr BonePair kSkeletonBones[] = {
+        { 0x20, 0x28 }, // Head -> Neck
+        { 0x28, 0x30 }, // Neck -> Spine
+        { 0x30, 0x38 }, // Spine -> Spine1
+        { 0x38, 0x88 }, // Spine1 -> Hip
+        { 0x28, 0x48 }, // Neck -> LeftShoulder
+        { 0x48, 0x50 }, // LeftShoulder -> LeftUpperarm
+        { 0x50, 0x58 }, // LeftUpperarm -> LeftForearm
+        { 0x58, 0x60 }, // LeftForearm -> LeftHand
+        { 0x28, 0x68 }, // Neck -> RightShoulder
+        { 0x68, 0x70 }, // RightShoulder -> RightUpperarm
+        { 0x70, 0x78 }, // RightUpperarm -> RightForearm
+        { 0x78, 0x80 }, // RightForearm -> RightHand
+        { 0x88, 0x90 }, // Hip -> LeftUpLeg
+        { 0x90, 0x98 }, // LeftUpLeg -> LeftLeg
+        { 0x98, 0xA0 }, // LeftLeg -> LeftFoot
+        { 0x88, 0xB0 }, // Hip -> RightUpLeg
+        { 0xB0, 0xB8 }, // RightUpLeg -> RightLeg
+        { 0xB8, 0xC0 }, // RightLeg -> RightFoot
+    };
+}
+
+void visuals::dskeleton(uint64_t playerPtr, const matrix& viewMatrix, float alpha) {
+    uint64_t view = player::character_view(playerPtr);
+    if (!view) return;
+
+    uint64_t biped = player::biped_map(view);
+    if (!biped) return;
+
+    ImDrawList* dl = ImGui::GetBackgroundDrawList();
+    ImU32 col = IM_COL32(
+        static_cast<int>(cfg::esp::skeleton_col.x * 255),
+        static_cast<int>(cfg::esp::skeleton_col.y * 255),
+        static_cast<int>(cfg::esp::skeleton_col.z * 255),
+        static_cast<int>(cfg::esp::skeleton_col.w * 255 * alpha)
+    );
+
+    for (const auto& pair : kSkeletonBones) {
+        Vector3 a_world = player::bone_position(biped, pair.from);
+        Vector3 b_world = player::bone_position(biped, pair.to);
+
+        // Reject NaN / far-sanity (world bones never exceed ~2000m).
+        if (!std::isfinite(a_world.x) || !std::isfinite(b_world.x)) continue;
+        if (std::fabs(a_world.x) > 10000.f || std::fabs(b_world.x) > 10000.f) continue;
+
+        ImVec2 a_screen, b_screen;
+        if (!world_to_screen(a_world, viewMatrix, a_screen)) continue;
+        if (!world_to_screen(b_world, viewMatrix, b_screen)) continue;
+
+        dl->AddLine(a_screen, b_screen, col, 1.2f);
+    }
+}
+
+// Forces the client to render a player through walls by writing
+// PlayerCharacterView.viewVisible = true. This field (+0x30, bool,
+// dump.cs:64752) is a plain bool — not SafeBool — so we can write directly
+// with wpm<bool>. We throttle heavily (5 writes/sec/player max, and no more
+// than 1 write every 100 ms per player) because Standoff 2's client
+// watchdog flags high-frequency writes into libil2cpp-owned memory.
+//
+// Behaviour ported from jni/esp.cpp:132 (WriteViewVisibleSafe).
+void visuals::force_visible_write(uint64_t playerPtr) {
+    using clock = std::chrono::steady_clock;
+    static std::unordered_map<uint64_t, clock::time_point> g_last_write;
+    static std::unordered_map<uint64_t, int> g_write_count;
+    static auto g_last_reset = clock::now();
+
+    constexpr int kMaxWritesPerSecond = 5;
+    constexpr int kMinIntervalMs = 100;
+
+    uint64_t view = player::character_view(playerPtr);
+    if (!view || view < 0x10000) return;
+
+    auto now = clock::now();
+
+    // Rolling per-second bucket (reset once a second).
+    if (std::chrono::duration_cast<std::chrono::seconds>(now - g_last_reset).count() >= 1) {
+        g_write_count.clear();
+        g_last_reset = now;
+    }
+    if (g_write_count[playerPtr] >= kMaxWritesPerSecond) return;
+
+    auto it = g_last_write.find(playerPtr);
+    if (it != g_last_write.end()) {
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second).count();
+        if (elapsed < kMinIntervalMs) return;
+    }
+
+    uint64_t addr = player::view_visible_addr(view);
+    if (addr < view || addr > view + 0x1000) return; // sanity
+
+    wpm<bool>(addr, true);
+    g_last_write[playerPtr] = now;
+    g_write_count[playerPtr]++;
 }
 
 void visuals::dbox(const ImVec2& t, const ImVec2& b, float a) {
