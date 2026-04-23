@@ -164,9 +164,15 @@ void visuals::dskeleton(uint64_t playerPtr, const matrix& viewMatrix, float alph
         Vector3 a_world = player::bone_position(biped, pair.from);
         Vector3 b_world = player::bone_position(biped, pair.to);
 
-        // Reject NaN / far-sanity (world bones never exceed ~2000m).
-        if (!std::isfinite(a_world.x) || !std::isfinite(b_world.x)) continue;
-        if (std::fabs(a_world.x) > 10000.f || std::fabs(b_world.x) > 10000.f) continue;
+        // Reject NaN / far-sanity. Check all three components — a single
+        // corrupted parent transform in remote memory can produce a finite
+        // .x but NaN .y/.z, and world_to_screen treats NaN*anything as
+        // finite (NaN <= 0.0001f is false), so bad coords would leak into
+        // ImGui's draw list and produce degenerate lines.
+        if (!std::isfinite(a_world.x) || !std::isfinite(a_world.y) || !std::isfinite(a_world.z) ||
+            !std::isfinite(b_world.x) || !std::isfinite(b_world.y) || !std::isfinite(b_world.z)) continue;
+        if (std::fabs(a_world.x) > 10000.f || std::fabs(a_world.y) > 10000.f || std::fabs(a_world.z) > 10000.f ||
+            std::fabs(b_world.x) > 10000.f || std::fabs(b_world.y) > 10000.f || std::fabs(b_world.z) > 10000.f) continue;
 
         ImVec2 a_screen, b_screen;
         if (!world_to_screen(a_world, viewMatrix, a_screen)) continue;
