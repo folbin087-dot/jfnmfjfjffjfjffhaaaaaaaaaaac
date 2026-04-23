@@ -34,7 +34,7 @@ namespace ui::menu {
     static float fh = 38.f;
     static float sth = 50.f;
 
-    static const char* tabs[] = {"Visuals", "Settings"};
+    static const char* tabs[] = {"Visuals", "Rage", "Settings"};
     static constexpr int tc = sizeof(tabs) / sizeof(tabs[0]);
 
     static const char* vstabs[] = {"ESP", "Other"};
@@ -102,6 +102,16 @@ namespace ui::menu {
             case 0: esp_tab(a); break;
             case 1: other_tab(a); break;
         }
+    }
+
+    static void rage_tab(float a) {
+        checkbox("No Recoil", &cfg::rage::no_recoil, a);
+        separator(a);
+        slider("Recoil horizontal", &cfg::rage::recoil_horizontal, 0.f, 1.f, a, "%.2f");
+        separator(a);
+        slider("Recoil vertical", &cfg::rage::recoil_vertical, 0.f, 1.f, a, "%.2f");
+        separator(a);
+        checkbox("No Spread", &cfg::rage::no_spread, a);
     }
 
     static void settings_tab(float a) {
@@ -370,7 +380,8 @@ namespace ui::menu {
 
             switch (tab) {
                 case 0: visuals_tab(ma); break;
-                case 1: settings_tab(ma); break;
+                case 1: rage_tab(ma); break;
+                case 2: settings_tab(ma); break;
             }
 
             sm = ImGui::GetScrollMaxY();
