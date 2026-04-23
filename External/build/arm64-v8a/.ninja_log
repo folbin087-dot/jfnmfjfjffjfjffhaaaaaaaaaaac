@@ -1,0 +1,16 @@
+# ninja log v7
+218	263	7985960408429967	CMakeFiles/bycmd.dir/src/protect/oxorany.cpp.o	b9400578beed721a
+197	1010	7985960408220667	CMakeFiles/bycmd.dir/src/ui/bar.cpp.o	9241fbca76887814
+190	1630	7985960408150820	CMakeFiles/bycmd.dir/src/ui/menu.cpp.o	9cef6a4ef7b6684a
+264	1821	7985960408888434	CMakeFiles/bycmd.dir/includes/draw/Android_draw/draw.cpp.o	9241806a75bfd539
+204	1923	7985960408280464	CMakeFiles/bycmd.dir/src/ui/widgets/widgets.cpp.o	55e9a25d634ce163
+1014	2115	7985960416390772	CMakeFiles/bycmd.dir/includes/draw/Android_touch/Touch.cpp.o	4b060607fb9b0bdc
+1924	2637	7985960425480814	CMakeFiles/bycmd.dir/includes/draw/ImGui/imgui_tables.cpp.o	e7252b65a2b28e4b
+20	2739	7985960406444790	CMakeFiles/bycmd.dir/src/main.cpp.o	e2e06d38d61f2ad0
+2637	2760	7985960432620105	CMakeFiles/bycmd.dir/includes/draw/ImGui/backends/imgui_impl_android.cpp.o	77b0cb7b2b57dffe
+2740	2858	7985960433641760	CMakeFiles/bycmd.dir/includes/draw/ImGui/backends/imgui_impl_opengl3.cpp.o	3c7b4a1e66f4ce21
+1822	3019	7985960424463000	CMakeFiles/bycmd.dir/includes/draw/ImGui/imgui_draw.cpp.o	a98b8a192154cb83
+2115	3463	7985960427401845	CMakeFiles/bycmd.dir/includes/draw/ImGui/imgui_widgets.cpp.o	c7256327d5d27372
+210	3584	7985960408350229	CMakeFiles/bycmd.dir/src/func/visuals.cpp.o	a03dd9ab2f6ddd33
+1631	3609	7985960422559369	CMakeFiles/bycmd.dir/includes/draw/ImGui/imgui.cpp.o	3e05590a38b5d1ae
+3609	7248	7985960442334179	bycmd.sh	d4edd228bf6de39d
