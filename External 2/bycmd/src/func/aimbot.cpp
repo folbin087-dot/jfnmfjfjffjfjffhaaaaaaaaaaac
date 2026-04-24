@@ -97,43 +97,57 @@ namespace aimbot
     {
         uint64_t transObj = rpm<uint64_t>(transObj2 + oxorany(0x10));
         if (!transObj) return Vector3(0, 0, 0);
-        
+
         uint64_t matrixPtr = rpm<uint64_t>(transObj + oxorany(0x38));
-        uint64_t index = rpm<uint64_t>(transObj + oxorany(0x40));
         if (!matrixPtr) return Vector3(0, 0, 0);
-        
+
+        // ВАЖНО: index — это int32 (4 байта) в TransformObject, а не uint64.
+        // Чтение 8 байт подхватывает мусор из соседнего поля в верхние
+        // 32 бита → `sizeof(TMatrix) * index` даёт огромный смещение и
+        // rpm читает мусорные bytes. Все кости → Vector3(0,0,0) → скелет
+        // не рисуется / aimbot мажет.
+        int index = rpm<int>(transObj + oxorany(0x40));
+        if (index < 0 || index > 50000) return Vector3(0, 0, 0);
+
         uint64_t matrix_list = rpm<uint64_t>(matrixPtr + oxorany(0x18));
         uint64_t matrix_indices = rpm<uint64_t>(matrixPtr + oxorany(0x20));
         if (!matrix_list || !matrix_indices) return Vector3(0, 0, 0);
-        
+
         // Читаем начальную позицию
         Vector3 result = rpm<Vector3>(matrix_list + sizeof(TMatrix) * index);
         int transformIndex = rpm<int>(matrix_indices + sizeof(int) * index);
-        
-        // Проходим по иерархии трансформов
-        while (transformIndex >= 0) {
+
+        // Проходим по иерархии трансформов.
+        // safety-counter защищает от цикла в parent-индексах (в игре
+        // иерархия 5-10 уровней, 64 — безопасный потолок).
+        int safety = 0;
+        while (transformIndex >= 0 && safety++ < 64) {
             TMatrix t = rpm<TMatrix>(matrix_list + sizeof(TMatrix) * transformIndex);
-            
+
             float sX = result.x * t.sx;
             float sY = result.y * t.sy;
             float sZ = result.z * t.sz;
-            
+
             // Применяем кватернион поворота
-            result.x = t.px + sX + sX * ((t.ry * t.ry * -2.f) - (t.rz * t.rz * 2.f)) 
-                            + sY * ((t.rw * t.rz * -2.f) - (t.ry * t.rx * -2.f)) 
+            result.x = t.px + sX + sX * ((t.ry * t.ry * -2.f) - (t.rz * t.rz * 2.f))
+                            + sY * ((t.rw * t.rz * -2.f) - (t.ry * t.rx * -2.f))
                             + sZ * ((t.rz * t.rx * 2.f) - (t.rw * t.ry * -2.f));
-            
-            result.y = t.py + sY + sX * ((t.rx * t.ry * 2.f) - (t.rw * t.rz * -2.f)) 
-                            + sY * ((t.rz * t.rz * -2.f) - (t.rx * t.rx * 2.f)) 
+
+            result.y = t.py + sY + sX * ((t.rx * t.ry * 2.f) - (t.rw * t.rz * -2.f))
+                            + sY * ((t.rz * t.rz * -2.f) - (t.rx * t.rx * 2.f))
                             + sZ * ((t.rw * t.rx * -2.f) - (t.rz * t.ry * -2.f));
-            
-            result.z = t.pz + sZ + sX * ((t.rw * t.ry * -2.f) - (t.rx * t.rz * -2.f)) 
-                            + sY * ((t.ry * t.rz * 2.f) - (t.rw * t.rx * -2.f)) 
+
+            result.z = t.pz + sZ + sX * ((t.rw * t.ry * -2.f) - (t.rx * t.rz * -2.f))
+                            + sY * ((t.ry * t.rz * 2.f) - (t.rw * t.rx * -2.f))
                             + sZ * ((t.rx * t.rx * -2.f) - (t.ry * t.ry * 2.f));
-            
+
             transformIndex = rpm<int>(matrix_indices + sizeof(int) * transformIndex);
         }
-        
+
+        // Финальная валидация — любая порча в цепочке parent'ов даёт NaN.
+        if (!std::isfinite(result.x) || !std::isfinite(result.y) || !std::isfinite(result.z))
+            return Vector3(0, 0, 0);
+
         return result;
     }
 
@@ -268,6 +282,16 @@ namespace aimbot
     // helper: записываем углы через AimController → AimingData
     void write_view_angles(const Vector3 &angles)
     {
+        // Защита от NaN/inf — без неё испорченный bone_pos или corrupt
+        // read приводил к записи NaN в AimingData, после чего камера
+        // «замирала» и игру невозможно было восстановить без переключения
+        // оружия. Также angles.x=±inf в следующем тике превращал
+        // normalize_angles в бесконечный цикл.
+        if (!std::isfinite(angles.x) || !std::isfinite(angles.y))
+            return;
+        if (std::fabs(angles.x) > 360.0f || std::fabs(angles.y) > 360.0f)
+            return;
+
         uint64_t PlayerManager = get_player_manager();
         if (!PlayerManager)
             return;
@@ -280,6 +304,9 @@ namespace aimbot
         if (!AimController)
             return;
 
+        // AimingData — это managed-class reference (отдельный heap-объект),
+        // поэтому слот хранит указатель, который нужно разыменовать.
+        // Запись по AimController+0x90 напрямую портит саму ссылку.
         uint64_t AimingData = rpm<uint64_t>(AimController + oxorany(0x90));
         if (!AimingData)
             return;
@@ -287,10 +314,6 @@ namespace aimbot
         // x3lay: AimingData + 0x18 = pitch, +0x1C = yaw
         wpm<float>(AimingData + oxorany(0x18), angles.x); // pitch
         wpm<float>(AimingData + oxorany(0x1C), angles.y); // yaw
-
-        // Backup slots (экспериментально)
-        wpm<float>(AimingData + oxorany(0x10), angles.x); // pitch backup
-        wpm<float>(AimingData + oxorany(0x14), angles.y); // yaw backup
     }
 
     static Vector3 calculate_angles(const Vector3 &from, const Vector3 &to)
@@ -312,6 +335,14 @@ namespace aimbot
     static Vector3 normalize_angles(const Vector3 &angles)
     {
         Vector3 result = angles;
+
+        // Защита от ±inf / NaN — `inf - 180 == inf` зацикливает while()
+        // навсегда и замораживает render-thread. Любой не-finite вход
+        // сбрасываем в 0 — в следующем тике write_view_angles всё равно
+        // отбросит запись как небезопасную.
+        if (!std::isfinite(result.x)) result.x = 0.0f;
+        if (!std::isfinite(result.y)) result.y = 0.0f;
+        if (!std::isfinite(result.z)) result.z = 0.0f;
 
         while (result.x > 89.0f)
             result.x -= 180.0f;
@@ -410,6 +441,16 @@ namespace aimbot
                 BonePosition = PlayerPosition;
                 BonePosition.y += 1.67f;
             }
+
+            // NaN/inf на ЛЮБОЙ из 3 координат даёт фейковый "идеальный"
+            // score через calculate_angles → NaN угол → normalize_angles(0)
+            // → 0 FOV. Без проверки всех компонент aimbot мог выбрать
+            // игрока, чьи кости читались мусором, и игнорировать реальную
+            // цель. Аналогично дикие выбросы >10km — битая память.
+            if (!std::isfinite(BonePosition.x) || !std::isfinite(BonePosition.y) || !std::isfinite(BonePosition.z))
+                continue;
+            if (std::fabs(BonePosition.x) > 10000.f || std::fabs(BonePosition.y) > 10000.f || std::fabs(BonePosition.z) > 10000.f)
+                continue;
 
             float Distance = calculate_distance(BonePosition, local_pos);
             if (Distance > cfg::aimbot::max_distance)
@@ -574,6 +615,13 @@ namespace aimbot
                 target_angles.y - current_angles.y,
                 0);
 
+            // inf/NaN в current_angles (битое чтение AimingData) делает
+            // angle_diff не-finite — while ниже крутится бесконечно и
+            // замораживает render-thread. Сбрасываем дельту в 0 →
+            // камера не поворачивается в этом тике.
+            if (!std::isfinite(angle_diff.x)) angle_diff.x = 0.0f;
+            if (!std::isfinite(angle_diff.y)) angle_diff.y = 0.0f;
+
             while (angle_diff.y > 180.0f)
                 angle_diff.y -= 360.0f;
             while (angle_diff.y < -180.0f)
@@ -596,6 +644,24 @@ namespace aimbot
         write_view_angles(final_angles);
 
         // триггербот
+        //
+        // dump.cs (line 106281-106290) подтверждает структуру:
+        //   enum ShootingLoopState : uint8_t { NotStated=0, Stopped=1, LoopShooting=2 }
+        //   GunController + 0x140 = ShootingLoopState (uint8_t, 1 байт)
+        //
+        // Проблемы старой реализации:
+        //  1. Писали `int` (4 байта) значение `3` — 3 это НЕ валидное
+        //     значение enum (только 0/1/2), плюс 4-байтная запись поверх
+        //     1-байтного поля портила 3 следующих байта (часть padding'а
+        //     или начало следующего поля 0x148).
+        //  2. ShootingLoopState — это read-back state от игрового tick'а,
+        //     устанавливается игрой на основе user input. Запись извне
+        //     может быть перезаписана в следующем кадре.
+        //
+        // Исправлено: пишем валидный uint8_t = 2 (LoopShooting). Это даёт
+        // максимальный шанс, что игра подхватит состояние shoot. Если
+        // не подхватывает — внешний cheat не может реализовать trigger
+        // без input-simulation, это фундаментальное ограничение.
         if (cfg::aimbot::auto_shoot)
         {
             static bool is_shooting = false;
@@ -612,7 +678,8 @@ namespace aimbot
                     {
                         if (timer >= cfg::aimbot::reaction_time)
                         {
-                            wpm<int>(weaponController + oxorany(0x140), 3);
+                            // LoopShooting = 2 (uint8_t) — валидное значение
+                            wpm<uint8_t>(weaponController + oxorany(0x140), (uint8_t)2);
                             is_shooting = true;
                             timer = 0.0f;
                         }
@@ -621,7 +688,8 @@ namespace aimbot
                     {
                         if (timer >= cfg::aimbot::reaction_time)
                         {
-                            wpm<int>(weaponController + oxorany(0x140), 0);
+                            // NotStated = 0 (uint8_t)
+                            wpm<uint8_t>(weaponController + oxorany(0x140), (uint8_t)0);
                             is_shooting = false;
                             timer = 0.0f;
                         }

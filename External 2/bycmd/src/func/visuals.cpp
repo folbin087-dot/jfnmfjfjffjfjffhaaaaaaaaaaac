@@ -445,40 +445,51 @@ struct TMatrix {
 Vector3 GetTransformPosition(uint64_t transObj2) {
     uint64_t transObj = rpm<uint64_t>(transObj2 + oxorany(0x10));
     if (!transObj) return Vector3(0, 0, 0);
-    
+
     uint64_t matrixPtr = rpm<uint64_t>(transObj + oxorany(0x38));
-    uint64_t index = rpm<uint64_t>(transObj + oxorany(0x40));
     if (!matrixPtr) return Vector3(0, 0, 0);
-    
+
+    // index — int32 в TransformObject. Чтение uint64 подхватывало
+    // мусор в верхние байты → sizeof(TMatrix) * index → out-of-bounds.
+    int index = rpm<int>(transObj + oxorany(0x40));
+    if (index < 0 || index > 50000) return Vector3(0, 0, 0);
+
     uint64_t matrix_list = rpm<uint64_t>(matrixPtr + oxorany(0x18));
     uint64_t matrix_indices = rpm<uint64_t>(matrixPtr + oxorany(0x20));
     if (!matrix_list || !matrix_indices) return Vector3(0, 0, 0);
-    
+
     Vector3 result = rpm<Vector3>(matrix_list + sizeof(TMatrix) * index);
     int transformIndex = rpm<int>(matrix_indices + sizeof(int) * index);
-    
-    while (transformIndex >= 0) {
+
+    // safety-counter против бесконечного цикла по parent'ам
+    int safety = 0;
+    while (transformIndex >= 0 && safety++ < 64) {
         TMatrix t = rpm<TMatrix>(matrix_list + sizeof(TMatrix) * transformIndex);
-        
+
         float sX = result.x * t.sx;
         float sY = result.y * t.sy;
         float sZ = result.z * t.sz;
-        
-        result.x = t.px + sX + sX * ((t.ry * t.ry * -2.f) - (t.rz * t.rz * 2.f)) 
-                        + sY * ((t.rw * t.rz * -2.f) - (t.ry * t.rx * -2.f)) 
+
+        result.x = t.px + sX + sX * ((t.ry * t.ry * -2.f) - (t.rz * t.rz * 2.f))
+                        + sY * ((t.rw * t.rz * -2.f) - (t.ry * t.rx * -2.f))
                         + sZ * ((t.rz * t.rx * 2.f) - (t.rw * t.ry * -2.f));
-        
-        result.y = t.py + sY + sX * ((t.rx * t.ry * 2.f) - (t.rw * t.rz * -2.f)) 
-                        + sY * ((t.rz * t.rz * -2.f) - (t.rx * t.rx * 2.f)) 
+
+        result.y = t.py + sY + sX * ((t.rx * t.ry * 2.f) - (t.rw * t.rz * -2.f))
+                        + sY * ((t.rz * t.rz * -2.f) - (t.rx * t.rx * 2.f))
                         + sZ * ((t.rw * t.rx * -2.f) - (t.rz * t.ry * -2.f));
-        
-        result.z = t.pz + sZ + sX * ((t.rw * t.ry * -2.f) - (t.rx * t.rz * -2.f)) 
-                        + sY * ((t.ry * t.rz * 2.f) - (t.rw * t.rx * -2.f)) 
+
+        result.z = t.pz + sZ + sX * ((t.rw * t.ry * -2.f) - (t.rx * t.rz * -2.f))
+                        + sY * ((t.ry * t.rz * 2.f) - (t.rw * t.rx * -2.f))
                         + sZ * ((t.rx * t.rx * -2.f) - (t.ry * t.ry * 2.f));
-        
+
         transformIndex = rpm<int>(matrix_indices + sizeof(int) * transformIndex);
     }
-    
+
+    // NaN на любой компоненте ломает world_to_screen (рисует в (0,0) →
+    // кости «прыгают» в угол экрана). Защищаем результат.
+    if (!std::isfinite(result.x) || !std::isfinite(result.y) || !std::isfinite(result.z))
+        return Vector3(0, 0, 0);
+
     return result;
 }
 
@@ -1247,15 +1258,23 @@ void visuals::dskeleton(uint64_t player, const matrix& m, float a)
     auto getBonePos = [&](uint64_t player, uint64_t boneOffset) -> Vector3 {
         uint64_t view = rpm<uint64_t>(player + 0x48);
         if (!view) return Vector3::Zero();
-        
+
         uint64_t bipedmap = rpm<uint64_t>(view + 0x48);
         if (!bipedmap) return Vector3::Zero();
-        
+
         uint64_t transform = rpm<uint64_t>(bipedmap + boneOffset);
         if (!transform) return Vector3::Zero();
-        
+
         Vector3 pos = GetTransformPosition(transform);
         if (pos.x == 0 && pos.y == 0 && pos.z == 0) return Vector3::Zero();
+
+        // NaN/inf на любой компоненте → world_to_screen рисует в углу
+        // экрана → скелет «размазывается» по углам при corrupt-чтении.
+        if (!std::isfinite(pos.x) || !std::isfinite(pos.y) || !std::isfinite(pos.z))
+            return Vector3::Zero();
+        if (std::fabs(pos.x) > 10000.f || std::fabs(pos.y) > 10000.f || std::fabs(pos.z) > 10000.f)
+            return Vector3::Zero();
+
         return pos;
     };
     

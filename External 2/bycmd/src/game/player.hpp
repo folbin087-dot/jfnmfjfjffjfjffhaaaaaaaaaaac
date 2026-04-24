@@ -36,8 +36,14 @@ namespace bone
 namespace player
 {
     // ============================================
-    // Чтение позиции из Unity Transform
-    // Цепочка: Transform → TransformObject → matrix_ptr → matrix_list → position
+    // Чтение позиции из Unity Transform (МИРОВЫЕ координаты)
+    // Walk по иерархии трансформов, накапливая translate/rotate/scale.
+    //
+    // Старая версия читала ТОЛЬКО matrix_list[index] — это локальная
+    // позиция относительно родителя, она даёт правильный результат лишь
+    // для корневого трансформа. Для детей (кости скелета) без прохода
+    // по иерархии получаются произвольные/нулевые координаты, и ESP-
+    // skeleton / Chams рисуются в начале мира. См. aimbot::GetTransformPosition.
     // ============================================
     inline Vector3 read_transform_position(uint64_t transform) noexcept
     {
@@ -54,38 +60,75 @@ namespace player
         if (!matrix_ptr || matrix_ptr < 0x1000)
             return Vector3(0, 0, 0);
 
-        // TransformObject + 0x40 → index
+        // TransformObject + 0x40 → initial index
         int index = rpm<int>(transform_internal + oxorany(0x40));
         if (index < 0 || index > 50000)
             return Vector3(0, 0, 0);
 
-        // matrix_ptr + 0x18 → matrix_list
+        // matrix_ptr + 0x18 → matrix_list, +0x20 → matrix_indices
         uint64_t matrix_list = rpm<uint64_t>(matrix_ptr + oxorany(0x18));
         if (!matrix_list || matrix_list < 0x1000)
             return Vector3(0, 0, 0);
+        uint64_t matrix_indices = rpm<uint64_t>(matrix_ptr + oxorany(0x20));
+        if (!matrix_indices || matrix_indices < 0x1000)
+            return Vector3(0, 0, 0);
 
-        // TMatrix = Vector4(16) + Quaternion(16) + Vector4(16) = 48 байт
-        // Позиция — первые 3 float (x, y, z)
+        // TMatrix: position (px,py,pz,pw) + quaternion (rx,ry,rz,rw) + scale (sx,sy,sz,sw)
         constexpr int TMATRIX_SIZE = 48;
-        uint64_t addr = matrix_list + (TMATRIX_SIZE * index);
 
-        Vector3 pos;
-        pos.x = rpm<float>(addr + 0x00);
-        pos.y = rpm<float>(addr + 0x04);
-        pos.z = rpm<float>(addr + 0x08);
+        Vector3 result = rpm<Vector3>(matrix_list + TMATRIX_SIZE * index);
+        int parent = rpm<int>(matrix_indices + sizeof(int) * index);
 
-        // Валидация — защита от мусора
-        if (std::isnan(pos.x) || std::isnan(pos.y) || std::isnan(pos.z))
+        // Walk по предкам, накапливая transform
+        int safety = 0;
+        while (parent >= 0 && safety++ < 64)
+        {
+            struct TMatrix { float px, py, pz, pw, rx, ry, rz, rw, sx, sy, sz, sw; };
+            TMatrix t = rpm<TMatrix>(matrix_list + TMATRIX_SIZE * parent);
+
+            float sX = result.x * t.sx;
+            float sY = result.y * t.sy;
+            float sZ = result.z * t.sz;
+
+            float nx = t.px + sX + sX * ((t.ry * t.ry * -2.f) - (t.rz * t.rz * 2.f))
+                             + sY * ((t.rw * t.rz * -2.f) - (t.ry * t.rx * -2.f))
+                             + sZ * ((t.rz * t.rx * 2.f) - (t.rw * t.ry * -2.f));
+
+            float ny = t.py + sY + sX * ((t.rx * t.ry * 2.f) - (t.rw * t.rz * -2.f))
+                             + sY * ((t.rz * t.rz * -2.f) - (t.rx * t.rx * 2.f))
+                             + sZ * ((t.rw * t.rx * -2.f) - (t.rz * t.ry * -2.f));
+
+            float nz = t.pz + sZ + sX * ((t.rw * t.ry * -2.f) - (t.rx * t.rz * -2.f))
+                             + sY * ((t.ry * t.rz * 2.f) - (t.rw * t.rx * -2.f))
+                             + sZ * ((t.rx * t.rx * -2.f) - (t.ry * t.ry * 2.f));
+
+            result.x = nx;
+            result.y = ny;
+            result.z = nz;
+
+            parent = rpm<int>(matrix_indices + sizeof(int) * parent);
+        }
+
+        // Валидация ВСЕХ трёх компонент — NaN/inf в .y или .z
+        // без этой проверки «проскакивал» наружу и ломал world_to_screen.
+        if (!std::isfinite(result.x) || !std::isfinite(result.y) || !std::isfinite(result.z))
             return Vector3(0, 0, 0);
-        if (std::abs(pos.x) > 50000.0f || std::abs(pos.y) > 50000.0f || std::abs(pos.z) > 50000.0f)
+        if (std::fabs(result.x) > 50000.0f || std::fabs(result.y) > 50000.0f || std::fabs(result.z) > 50000.0f)
             return Vector3(0, 0, 0);
 
-        return pos;
+        return result;
     }
 
     // ============================================
     // Позиция игрока (через MovementController — быстрый путь)
     // Цепочка: PlayerController → MovementController → TransformData → position
+    //
+    // Оффсеты перепроверены против рабочего jni (jni/jni/includes/uses.h):
+    //   p + 0x98 → MovementController
+    //   mc + 0xB8 → TransformData   (было: 0xB0 — сдвиг на 1 qword, читался мусор)
+    //   td + 0x14 → Vector3         (было: 0x44 — читалось поле из другой части)
+    // Любая ESP-функция (box, name, HP, distance, world_to_screen) падает
+    // при неправильных оффсетах — игроки «прыгают» по карте или исчезают.
     // ============================================
     inline Vector3 position(uint64_t p) noexcept
     {
@@ -94,13 +137,13 @@ namespace player
         if (!movement || movement < 0x1000)
             return Vector3(0, 0, 0);
 
-        // MovementController + 0xB0 → TransformData
-        uint64_t transform_data = rpm<uint64_t>(movement + oxorany(0xB0));
+        // MovementController + 0xB8 → TransformData
+        uint64_t transform_data = rpm<uint64_t>(movement + oxorany(0xB8));
         if (!transform_data || transform_data < 0x1000)
             return Vector3(0, 0, 0);
 
-        // TransformData + 0x44 → Vector3 position
-        return rpm<Vector3>(transform_data + oxorany(0x44));
+        // TransformData + 0x14 → Vector3 position
+        return rpm<Vector3>(transform_data + oxorany(0x14));
     }
 
     // ============================================
