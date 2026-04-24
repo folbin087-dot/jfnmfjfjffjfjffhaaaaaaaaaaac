@@ -644,6 +644,24 @@ namespace aimbot
         write_view_angles(final_angles);
 
         // триггербот
+        //
+        // dump.cs (line 106281-106290) подтверждает структуру:
+        //   enum ShootingLoopState : uint8_t { NotStated=0, Stopped=1, LoopShooting=2 }
+        //   GunController + 0x140 = ShootingLoopState (uint8_t, 1 байт)
+        //
+        // Проблемы старой реализации:
+        //  1. Писали `int` (4 байта) значение `3` — 3 это НЕ валидное
+        //     значение enum (только 0/1/2), плюс 4-байтная запись поверх
+        //     1-байтного поля портила 3 следующих байта (часть padding'а
+        //     или начало следующего поля 0x148).
+        //  2. ShootingLoopState — это read-back state от игрового tick'а,
+        //     устанавливается игрой на основе user input. Запись извне
+        //     может быть перезаписана в следующем кадре.
+        //
+        // Исправлено: пишем валидный uint8_t = 2 (LoopShooting). Это даёт
+        // максимальный шанс, что игра подхватит состояние shoot. Если
+        // не подхватывает — внешний cheat не может реализовать trigger
+        // без input-simulation, это фундаментальное ограничение.
         if (cfg::aimbot::auto_shoot)
         {
             static bool is_shooting = false;
@@ -660,7 +678,8 @@ namespace aimbot
                     {
                         if (timer >= cfg::aimbot::reaction_time)
                         {
-                            wpm<int>(weaponController + oxorany(0x140), 3);
+                            // LoopShooting = 2 (uint8_t) — валидное значение
+                            wpm<uint8_t>(weaponController + oxorany(0x140), (uint8_t)2);
                             is_shooting = true;
                             timer = 0.0f;
                         }
@@ -669,7 +688,8 @@ namespace aimbot
                     {
                         if (timer >= cfg::aimbot::reaction_time)
                         {
-                            wpm<int>(weaponController + oxorany(0x140), 0);
+                            // NotStated = 0 (uint8_t)
+                            wpm<uint8_t>(weaponController + oxorany(0x140), (uint8_t)0);
                             is_shooting = false;
                             timer = 0.0f;
                         }
