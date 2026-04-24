@@ -7,16 +7,16 @@
 #include <cstring>
 #include <string>
 
-// v0.37.1 PlayerController offsets (VERIFIED from dump 16.02.2026)
+// v0.38.0 PlayerController offsets (matches working jni chain: 0x98 -> 0xB8 -> 0x14)
 namespace player {
     inline Vector3 position(uint64_t p) noexcept {
-        uint64_t MovementController = rpm<uint64_t>(p + oxorany(0x98));
-        if (!MovementController) return Vector3(0, 0, 0);
+        uint64_t pos_ptr1 = rpm<uint64_t>(p + oxorany(0x98));
+        if (!pos_ptr1 || pos_ptr1 < 0x10000) return Vector3(0, 0, 0);
 
-        uint64_t TransformData = rpm<uint64_t>(MovementController + oxorany(0xB0));
-        if (!TransformData) return Vector3(0, 0, 0);
+        uint64_t pos_ptr2 = rpm<uint64_t>(pos_ptr1 + oxorany(0xB8));
+        if (!pos_ptr2 || pos_ptr2 < 0x10000) return Vector3(0, 0, 0);
 
-        return rpm<Vector3>(TransformData + oxorany(0x44));
+        return rpm<Vector3>(pos_ptr2 + oxorany(0x14));
     }
 
     inline uint64_t photon_ptr(uint64_t p) noexcept {
