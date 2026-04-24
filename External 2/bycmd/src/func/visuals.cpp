@@ -517,18 +517,18 @@ static Vector3 GetBoneWorldPosition(uint64_t player, uint64_t boneOffset) {
 // Helper function to get player ammo
 static int get_player_ammo(uint64_t player) {
     if (!player) return -1;
-    
+
     uint64_t weaponry = rpm<uint64_t>(player + oxorany(0x88));
     if (!weaponry) return -1;
-    
+
     uint64_t weapon = rpm<uint64_t>(weaponry + oxorany(0xA0));
     if (!weapon) return -1;
-    
-    uint64_t parameters = rpm<uint64_t>(weapon + oxorany(0xA8));
-    if (!parameters) return -1;
-    
-    // Current ammo at offset 0x110 (from GunController dump)
-    return rpm<int>(parameters + 0x110);
+
+    // Ammo лежит на GunController (live state) + 0x110, НЕ на GunParameters (config).
+    // До этого дереференсили в parameters = weapon + 0xA8 (GunParameters) и читали
+    // там +0x110 — это _sightType/enum поле конфига, не ammo. Тот же класс ошибки
+    // что был в infinity_ammo (исправлено в PR #7).
+    return rpm<int>(weapon + oxorany(0x110));
 }
 
 // Helper function to get muzzle position
@@ -658,7 +658,12 @@ void visuals::draw()
         uint64_t player = rpm<uint64_t>(playerPtr1 + 0x30 + 0x18 * i);
         if (!player || player < 0x10000 || player > 0x7FFFFFFFFFFF || player == LocalPlayer) continue;
 
-        int playerTeam = rpm<int>(player + 0x79);
+        // Team — uint8_t @ PlayerController + 0x79 (сверено с jni/uses.h: team = 0x79,
+        // читается как uint8_t). Читать `int` тут нельзя: 4-байтная загрузка
+        // подхватывает 3 мусорных байта (0x7A..0x7C, включая соседний float @ 0x7C),
+        // и сравнение с LocalTeam (uint8) даёт ложно-отрицательный результат —
+        // тиммейты показываются как враги.
+        int playerTeam = rpm<uint8_t>(player + 0x79);
         if (playerTeam == LocalTeam) continue;
 
         int hp = rpm<int>(player + 0x58);
