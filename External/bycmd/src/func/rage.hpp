@@ -13,4 +13,8 @@ namespace rage {
     // drive them independently.
     void update_no_recoil(uint64_t local_player);
     void update_no_spread(uint64_t local_player);
+    void update_bhop(uint64_t local_player);
+    void update_world_fov(uint64_t local_player);
+    void update_aspect_ratio(uint64_t local_player);
+    void update_fast_plant(uint64_t local_player);
 }

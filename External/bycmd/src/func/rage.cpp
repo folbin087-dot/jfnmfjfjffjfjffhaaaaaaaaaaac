@@ -5,6 +5,8 @@
 #include "../protect/oxorany.hpp"
 #include "../ui/cfg.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 
 // ============================================================================
@@ -62,6 +64,44 @@ namespace {
 
     // WeaponryController -> WeaponController (dump.cs:66678 +0xA0).
     constexpr int kWeaponControllerPtr = 0xA0;
+
+    // ========== Bhop (MovementController chain) ==========
+    // PlayerController +0x98 -> MovementController    (dump.cs:64801)
+    // MovementController +0xA8 -> PlayerTranslationParameters (dump.cs:68525)
+    // PlayerTranslationParameters +0x50 -> JumpParameters (dump.cs:69066)
+    // JumpParameters +0x10 -> upwardSpeedDefualt (plain float) (dump.cs:68971)
+    // JumpParameters +0x60 -> JumpMoveSpeed (plain float)      (dump.cs:68981)
+    constexpr int kMovementControllerPtr    = 0x98;
+    constexpr int kTranslationParametersPtr = 0xA8;
+    constexpr int kJumpParametersPtr        = 0x50;
+    constexpr int kJumpUpwardSpeed          = 0x10;
+    constexpr int kJumpMoveSpeed            = 0x60;
+
+    // ========== World FOV (camera chain) ==========
+    // PlayerController +0xE0 -> PlayerMainCamera
+    // PlayerMainCamera +0x28 -> CameraScopeZoomer
+    // CameraScopeZoomer +0x38 -> _fov (plain float)            (dump.cs:101850)
+    constexpr int kPlayerMainCameraPtr  = 0xE0;
+    constexpr int kCameraScopeZoomerPtr = 0x28;
+    constexpr int kCameraScopeZoomerFov = 0x38;
+
+    // ========== Aspect Ratio (camera chain) ==========
+    // PlayerMainCamera +0x20 -> Camera (Unity Camera wrapper)
+    // Camera +0x10 -> NativeCamera (C++ side)
+    // NativeCamera +0x180 -> cam fov
+    // NativeCamera +0x4f0 -> aspect ratio (plain float)
+    constexpr int kPlayerMainCameraWrapper = 0x20;
+    constexpr int kNativeCameraPtr         = 0x10;
+    constexpr int kNativeCameraFov         = 0x180;
+    constexpr int kNativeCameraAspect      = 0x4f0;
+
+    // ========== Fast Plant (bomb chain) ==========
+    // WeaponController +0x110 -> BombParameters                (dump.cs:108455)
+    // BombParameters +0x110 -> _plantDuration (plain float)    (dump.cs:109195)
+    // BombParameters +0x14C -> _plantDurationSafe Nullable<SafeFloat>
+    constexpr int kBombParametersPtr    = 0x110;
+    constexpr int kPlantDurationPlain   = 0x110;
+    constexpr int kPlantDurationNullable = 0x14C;
 
     bool is_valid_ptr(uint64_t p) noexcept {
         return p >= 0x10000 && p <= 0x7fffffffffff;
@@ -132,8 +172,201 @@ void rage::update_no_spread(uint64_t local_player) {
     write_safe_float(gun + oxorany(kSpreadSafeFloat), 0.0f);
 }
 
+// ============================================================================
+// Bhop
+//   Multiplies JumpParameters' two plain float fields while enabled, restores
+//   the originals when disabled. We cache the first-read values so we can
+//   restore cleanly without needing the game to repopulate them.
+// ============================================================================
+namespace {
+    struct BhopCache {
+        bool  initialized = false;
+        float original_upward = 0.f;
+        float original_move   = 0.f;
+    };
+    inline BhopCache g_bhop_cache;
+
+    uint64_t get_jump_parameters(uint64_t local_player) noexcept {
+        if (!is_valid_ptr(local_player)) return 0;
+        uint64_t mc = rpm<uint64_t>(local_player + oxorany(kMovementControllerPtr));
+        if (!is_valid_ptr(mc)) return 0;
+        uint64_t tp = rpm<uint64_t>(mc + oxorany(kTranslationParametersPtr));
+        if (!is_valid_ptr(tp)) return 0;
+        uint64_t jp = rpm<uint64_t>(tp + oxorany(kJumpParametersPtr));
+        if (!is_valid_ptr(jp)) return 0;
+        return jp;
+    }
+
+    bool sane_float(float f) noexcept {
+        return std::isfinite(f) && f > 0.f && f < 1000.f;
+    }
+}
+
+void rage::update_bhop(uint64_t local_player) {
+    uint64_t jp = get_jump_parameters(local_player);
+    if (!jp) return;
+
+    if (!g_bhop_cache.initialized) {
+        float u = rpm<float>(jp + oxorany(kJumpUpwardSpeed));
+        float m = rpm<float>(jp + oxorany(kJumpMoveSpeed));
+        if (!sane_float(u) || !sane_float(m)) return;
+        g_bhop_cache.original_upward = u;
+        g_bhop_cache.original_move   = m;
+        g_bhop_cache.initialized = true;
+    }
+
+    if (cfg::rage::bhop) {
+        float mult = std::clamp(cfg::rage::bhop_multiplier, 1.f, 10.f);
+        float new_u = std::clamp(g_bhop_cache.original_upward * mult, 0.1f, 200.f);
+        float new_m = std::clamp(g_bhop_cache.original_move   * mult, 0.1f, 200.f);
+        wpm<float>(jp + oxorany(kJumpUpwardSpeed), new_u);
+        wpm<float>(jp + oxorany(kJumpMoveSpeed),   new_m);
+    } else {
+        wpm<float>(jp + oxorany(kJumpUpwardSpeed), g_bhop_cache.original_upward);
+        wpm<float>(jp + oxorany(kJumpMoveSpeed),   g_bhop_cache.original_move);
+    }
+}
+
+// ============================================================================
+// World FOV
+// ============================================================================
+namespace {
+    struct FovCache {
+        bool  initialized = false;
+        float original = 0.f;
+    };
+    inline FovCache g_fov_cache;
+
+    uint64_t get_camera_scope_zoomer(uint64_t local_player) noexcept {
+        if (!is_valid_ptr(local_player)) return 0;
+        uint64_t pmc = rpm<uint64_t>(local_player + oxorany(kPlayerMainCameraPtr));
+        if (!is_valid_ptr(pmc)) return 0;
+        uint64_t csz = rpm<uint64_t>(pmc + oxorany(kCameraScopeZoomerPtr));
+        if (!is_valid_ptr(csz)) return 0;
+        return csz;
+    }
+}
+
+void rage::update_world_fov(uint64_t local_player) {
+    uint64_t csz = get_camera_scope_zoomer(local_player);
+    if (!csz) return;
+
+    uint64_t fov_addr = csz + oxorany(kCameraScopeZoomerFov);
+    float cur = rpm<float>(fov_addr);
+    if (!std::isfinite(cur) || cur <= 0.f || cur > 300.f) return;
+
+    if (!g_fov_cache.initialized && cur > 10.f && cur < 200.f) {
+        g_fov_cache.original = cur;
+        g_fov_cache.initialized = true;
+    }
+
+    if (cfg::rage::world_fov) {
+        float v = std::clamp(cfg::rage::world_fov_value, 30.f, 120.f);
+        // Guard: don't fight the game every frame when scope-zoom changes
+        // the field legitimately. Only write when our target value differs
+        // meaningfully from what's currently stored.
+        if (std::fabs(cur - v) > 0.1f) {
+            wpm<float>(fov_addr, v);
+        }
+    } else if (g_fov_cache.initialized &&
+               std::fabs(cur - g_fov_cache.original) > 0.1f) {
+        wpm<float>(fov_addr, g_fov_cache.original);
+    }
+}
+
+// ============================================================================
+// Aspect Ratio
+// ============================================================================
+namespace {
+    struct AspectCache {
+        bool  initialized = false;
+        float original_aspect = 0.f;
+        float original_fov    = 0.f;
+    };
+    inline AspectCache g_aspect_cache;
+
+    uint64_t get_native_camera(uint64_t local_player) noexcept {
+        if (!is_valid_ptr(local_player)) return 0;
+        uint64_t pmc = rpm<uint64_t>(local_player + oxorany(kPlayerMainCameraPtr));
+        if (!is_valid_ptr(pmc)) return 0;
+        uint64_t wrapper = rpm<uint64_t>(pmc + oxorany(kPlayerMainCameraWrapper));
+        if (!is_valid_ptr(wrapper)) return 0;
+        uint64_t native = rpm<uint64_t>(wrapper + oxorany(kNativeCameraPtr));
+        if (!is_valid_ptr(native)) return 0;
+        return native;
+    }
+}
+
+void rage::update_aspect_ratio(uint64_t local_player) {
+    uint64_t nc = get_native_camera(local_player);
+    if (!nc) return;
+
+    uint64_t aspect_addr = nc + oxorany(kNativeCameraAspect);
+    uint64_t fov_addr    = nc + oxorany(kNativeCameraFov);
+
+    float cur_aspect = rpm<float>(aspect_addr);
+    float cur_fov    = rpm<float>(fov_addr);
+    if (!std::isfinite(cur_aspect) || !std::isfinite(cur_fov)) return;
+
+    if (!g_aspect_cache.initialized &&
+        cur_aspect > 0.2f && cur_aspect < 5.f &&
+        cur_fov > 10.f && cur_fov < 200.f) {
+        g_aspect_cache.original_aspect = cur_aspect;
+        g_aspect_cache.original_fov    = cur_fov;
+        g_aspect_cache.initialized = true;
+    }
+
+    if (cfg::rage::aspect_ratio) {
+        float v = std::clamp(cfg::rage::aspect_ratio_value, 0.5f, 4.f);
+        if (std::fabs(cur_aspect - v) > 0.01f) {
+            // Nudge FOV to force the camera to re-evaluate the projection
+            // (Unity only recomputes when something changes).
+            wpm<float>(fov_addr, v - 1.f);
+            wpm<float>(aspect_addr, v);
+        }
+    } else if (g_aspect_cache.initialized &&
+               std::fabs(cur_aspect - g_aspect_cache.original_aspect) > 0.01f) {
+        wpm<float>(fov_addr, g_aspect_cache.original_fov);
+        wpm<float>(aspect_addr, g_aspect_cache.original_aspect);
+    }
+}
+
+// ============================================================================
+// Fast Plant
+//   _plantDuration and _plantDurationSafe in BombParameters. Only takes
+//   effect on the bomber — WeaponryController +0xA0 resolves to
+//   BombController only when C4 is the equipped weapon.
+// ============================================================================
+void rage::update_fast_plant(uint64_t local_player) {
+    if (!cfg::rage::fast_plant) return;
+
+    uint64_t gun = get_gun_controller(local_player);
+    if (!gun) return;
+
+    uint64_t bomb_params = rpm<uint64_t>(gun + oxorany(kBombParametersPtr));
+    if (!is_valid_ptr(bomb_params)) return;
+
+    // Sanity-check the plain float before writing; if it's absurd, this
+    // isn't actually BombParameters (player probably doesn't have C4).
+    float cur = rpm<float>(bomb_params + oxorany(kPlantDurationPlain));
+    if (!std::isfinite(cur) || cur <= 0.f || cur > 60.f) return;
+
+    wpm<float>(bomb_params + oxorany(kPlantDurationPlain), 0.01f);
+    write_nullable_safe_float(bomb_params + oxorany(kPlantDurationNullable), 0.01f);
+}
+
+// ============================================================================
+// Orchestrator
+// ============================================================================
 void rage::tick() {
-    if (!cfg::rage::no_recoil && !cfg::rage::no_spread) return;
+    const bool any =
+        cfg::rage::no_recoil  ||
+        cfg::rage::no_spread  ||
+        cfg::rage::bhop       || g_bhop_cache.initialized   ||
+        cfg::rage::world_fov  || g_fov_cache.initialized    ||
+        cfg::rage::aspect_ratio || g_aspect_cache.initialized ||
+        cfg::rage::fast_plant;
+    if (!any) return;
 
     uint64_t player_manager = get_player_manager();
     if (!player_manager) return;
@@ -143,4 +376,8 @@ void rage::tick() {
 
     update_no_recoil(local_player);
     update_no_spread(local_player);
+    update_bhop(local_player);
+    update_world_fov(local_player);
+    update_aspect_ratio(local_player);
+    update_fast_plant(local_player);
 }
