@@ -97,43 +97,57 @@ namespace aimbot
     {
         uint64_t transObj = rpm<uint64_t>(transObj2 + oxorany(0x10));
         if (!transObj) return Vector3(0, 0, 0);
-        
+
         uint64_t matrixPtr = rpm<uint64_t>(transObj + oxorany(0x38));
-        uint64_t index = rpm<uint64_t>(transObj + oxorany(0x40));
         if (!matrixPtr) return Vector3(0, 0, 0);
-        
+
+        // ВАЖНО: index — это int32 (4 байта) в TransformObject, а не uint64.
+        // Чтение 8 байт подхватывает мусор из соседнего поля в верхние
+        // 32 бита → `sizeof(TMatrix) * index` даёт огромный смещение и
+        // rpm читает мусорные bytes. Все кости → Vector3(0,0,0) → скелет
+        // не рисуется / aimbot мажет.
+        int index = rpm<int>(transObj + oxorany(0x40));
+        if (index < 0 || index > 50000) return Vector3(0, 0, 0);
+
         uint64_t matrix_list = rpm<uint64_t>(matrixPtr + oxorany(0x18));
         uint64_t matrix_indices = rpm<uint64_t>(matrixPtr + oxorany(0x20));
         if (!matrix_list || !matrix_indices) return Vector3(0, 0, 0);
-        
+
         // Читаем начальную позицию
         Vector3 result = rpm<Vector3>(matrix_list + sizeof(TMatrix) * index);
         int transformIndex = rpm<int>(matrix_indices + sizeof(int) * index);
-        
-        // Проходим по иерархии трансформов
-        while (transformIndex >= 0) {
+
+        // Проходим по иерархии трансформов.
+        // safety-counter защищает от цикла в parent-индексах (в игре
+        // иерархия 5-10 уровней, 64 — безопасный потолок).
+        int safety = 0;
+        while (transformIndex >= 0 && safety++ < 64) {
             TMatrix t = rpm<TMatrix>(matrix_list + sizeof(TMatrix) * transformIndex);
-            
+
             float sX = result.x * t.sx;
             float sY = result.y * t.sy;
             float sZ = result.z * t.sz;
-            
+
             // Применяем кватернион поворота
-            result.x = t.px + sX + sX * ((t.ry * t.ry * -2.f) - (t.rz * t.rz * 2.f)) 
-                            + sY * ((t.rw * t.rz * -2.f) - (t.ry * t.rx * -2.f)) 
+            result.x = t.px + sX + sX * ((t.ry * t.ry * -2.f) - (t.rz * t.rz * 2.f))
+                            + sY * ((t.rw * t.rz * -2.f) - (t.ry * t.rx * -2.f))
                             + sZ * ((t.rz * t.rx * 2.f) - (t.rw * t.ry * -2.f));
-            
-            result.y = t.py + sY + sX * ((t.rx * t.ry * 2.f) - (t.rw * t.rz * -2.f)) 
-                            + sY * ((t.rz * t.rz * -2.f) - (t.rx * t.rx * 2.f)) 
+
+            result.y = t.py + sY + sX * ((t.rx * t.ry * 2.f) - (t.rw * t.rz * -2.f))
+                            + sY * ((t.rz * t.rz * -2.f) - (t.rx * t.rx * 2.f))
                             + sZ * ((t.rw * t.rx * -2.f) - (t.rz * t.ry * -2.f));
-            
-            result.z = t.pz + sZ + sX * ((t.rw * t.ry * -2.f) - (t.rx * t.rz * -2.f)) 
-                            + sY * ((t.ry * t.rz * 2.f) - (t.rw * t.rx * -2.f)) 
+
+            result.z = t.pz + sZ + sX * ((t.rw * t.ry * -2.f) - (t.rx * t.rz * -2.f))
+                            + sY * ((t.ry * t.rz * 2.f) - (t.rw * t.rx * -2.f))
                             + sZ * ((t.rx * t.rx * -2.f) - (t.ry * t.ry * 2.f));
-            
+
             transformIndex = rpm<int>(matrix_indices + sizeof(int) * transformIndex);
         }
-        
+
+        // Финальная валидация — любая порча в цепочке parent'ов даёт NaN.
+        if (!std::isfinite(result.x) || !std::isfinite(result.y) || !std::isfinite(result.z))
+            return Vector3(0, 0, 0);
+
         return result;
     }
 
@@ -600,6 +614,13 @@ namespace aimbot
                 target_angles.x - current_angles.x,
                 target_angles.y - current_angles.y,
                 0);
+
+            // inf/NaN в current_angles (битое чтение AimingData) делает
+            // angle_diff не-finite — while ниже крутится бесконечно и
+            // замораживает render-thread. Сбрасываем дельту в 0 →
+            // камера не поворачивается в этом тике.
+            if (!std::isfinite(angle_diff.x)) angle_diff.x = 0.0f;
+            if (!std::isfinite(angle_diff.y)) angle_diff.y = 0.0f;
 
             while (angle_diff.y > 180.0f)
                 angle_diff.y -= 360.0f;
