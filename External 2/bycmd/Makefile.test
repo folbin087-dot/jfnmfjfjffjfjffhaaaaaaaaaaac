@@ -1,0 +1,68 @@
+# Makefile for Bug Exploration Test
+# This compiles and runs the bug condition exploration test
+
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -pthread
+INCLUDES = -I. -Iincludes/internal/ImGui -Iincludes/internal
+
+# Source files needed for testing
+TEST_SOURCES = test_bug_exploration.cpp \
+               src/func/exploits.cpp \
+               src/func/visuals.cpp \
+               src/other/memory.cpp \
+               src/protect/oxorany.cpp \
+               src/game/game.cpp
+
+# Object files
+TEST_OBJECTS = $(TEST_SOURCES:.cpp=.o)
+
+# Target executable
+TEST_TARGET = test_bug_exploration
+
+# Default target
+all: $(TEST_TARGET)
+
+# Build test executable
+$(TEST_TARGET): $(TEST_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+# Compile source files
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# Run the bug exploration test
+test: $(TEST_TARGET)
+	@echo "=== Running Bug Condition Exploration Test ==="
+	@echo "CRITICAL: This test MUST FAIL on unfixed code"
+	@echo "Expected outcome: Test FAILS (proves bugs exist)"
+	@echo ""
+	./$(TEST_TARGET)
+	@echo ""
+	@if [ $$? -eq 1 ]; then \
+		echo "✓ TEST FAILED AS EXPECTED - Bugs confirmed to exist"; \
+		echo "✓ Root cause analysis validated"; \
+		echo "✓ Ready to proceed with fixes"; \
+	else \
+		echo "⚠ TEST PASSED UNEXPECTEDLY - May indicate:"; \
+		echo "  - Bugs already fixed"; \
+		echo "  - Test needs adjustment"; \
+		echo "  - Different root cause"; \
+	fi
+
+# Clean build artifacts
+clean:
+	rm -f $(TEST_OBJECTS) $(TEST_TARGET)
+
+# Force rebuild
+rebuild: clean all
+
+# Help target
+help:
+	@echo "Available targets:"
+	@echo "  all      - Build test executable"
+	@echo "  test     - Run bug exploration test"
+	@echo "  clean    - Remove build artifacts"
+	@echo "  rebuild  - Clean and rebuild"
+	@echo "  help     - Show this help"
+
+.PHONY: all test clean rebuild help
