@@ -43,6 +43,16 @@ struct Vector4 {
     inline Vector4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
 };
 
+// Unity TransformHierarchy matrix entry (packed, 48 bytes).
+// Layout matches Unity's internal TransformData used by the transform system
+// for SIMD-friendly batched updates. Used when walking parent chain to
+// compute world-space bone positions (see player::get_transform_position).
+struct TMatrix {
+    Vector4 position; // local position (xyz), w ignored
+    Vector4 rotation; // local rotation as quaternion (x,y,z,w)
+    Vector4 scale;    // local scale (xyz), w ignored
+};
+
 struct Quaternion;
 struct Vector3 {
     union {
