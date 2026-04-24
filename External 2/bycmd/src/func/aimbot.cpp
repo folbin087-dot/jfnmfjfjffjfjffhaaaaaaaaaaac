@@ -268,6 +268,16 @@ namespace aimbot
     // helper: записываем углы через AimController → AimingData
     void write_view_angles(const Vector3 &angles)
     {
+        // Защита от NaN/inf — без неё испорченный bone_pos или corrupt
+        // read приводил к записи NaN в AimingData, после чего камера
+        // «замирала» и игру невозможно было восстановить без переключения
+        // оружия. Также angles.x=±inf в следующем тике превращал
+        // normalize_angles в бесконечный цикл.
+        if (!std::isfinite(angles.x) || !std::isfinite(angles.y))
+            return;
+        if (std::fabs(angles.x) > 360.0f || std::fabs(angles.y) > 360.0f)
+            return;
+
         uint64_t PlayerManager = get_player_manager();
         if (!PlayerManager)
             return;
@@ -280,6 +290,9 @@ namespace aimbot
         if (!AimController)
             return;
 
+        // AimingData — это managed-class reference (отдельный heap-объект),
+        // поэтому слот хранит указатель, который нужно разыменовать.
+        // Запись по AimController+0x90 напрямую портит саму ссылку.
         uint64_t AimingData = rpm<uint64_t>(AimController + oxorany(0x90));
         if (!AimingData)
             return;
@@ -287,10 +300,6 @@ namespace aimbot
         // x3lay: AimingData + 0x18 = pitch, +0x1C = yaw
         wpm<float>(AimingData + oxorany(0x18), angles.x); // pitch
         wpm<float>(AimingData + oxorany(0x1C), angles.y); // yaw
-
-        // Backup slots (экспериментально)
-        wpm<float>(AimingData + oxorany(0x10), angles.x); // pitch backup
-        wpm<float>(AimingData + oxorany(0x14), angles.y); // yaw backup
     }
 
     static Vector3 calculate_angles(const Vector3 &from, const Vector3 &to)
@@ -312,6 +321,14 @@ namespace aimbot
     static Vector3 normalize_angles(const Vector3 &angles)
     {
         Vector3 result = angles;
+
+        // Защита от ±inf / NaN — `inf - 180 == inf` зацикливает while()
+        // навсегда и замораживает render-thread. Любой не-finite вход
+        // сбрасываем в 0 — в следующем тике write_view_angles всё равно
+        // отбросит запись как небезопасную.
+        if (!std::isfinite(result.x)) result.x = 0.0f;
+        if (!std::isfinite(result.y)) result.y = 0.0f;
+        if (!std::isfinite(result.z)) result.z = 0.0f;
 
         while (result.x > 89.0f)
             result.x -= 180.0f;
@@ -410,6 +427,16 @@ namespace aimbot
                 BonePosition = PlayerPosition;
                 BonePosition.y += 1.67f;
             }
+
+            // NaN/inf на ЛЮБОЙ из 3 координат даёт фейковый "идеальный"
+            // score через calculate_angles → NaN угол → normalize_angles(0)
+            // → 0 FOV. Без проверки всех компонент aimbot мог выбрать
+            // игрока, чьи кости читались мусором, и игнорировать реальную
+            // цель. Аналогично дикие выбросы >10km — битая память.
+            if (!std::isfinite(BonePosition.x) || !std::isfinite(BonePosition.y) || !std::isfinite(BonePosition.z))
+                continue;
+            if (std::fabs(BonePosition.x) > 10000.f || std::fabs(BonePosition.y) > 10000.f || std::fabs(BonePosition.z) > 10000.f)
+                continue;
 
             float Distance = calculate_distance(BonePosition, local_pos);
             if (Distance > cfg::aimbot::max_distance)
