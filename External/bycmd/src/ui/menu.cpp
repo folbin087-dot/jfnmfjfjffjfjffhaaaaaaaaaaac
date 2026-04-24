@@ -34,7 +34,7 @@ namespace ui::menu {
     static float fh = 38.f;
     static float sth = 50.f;
 
-    static const char* tabs[] = {"Visuals", "Settings"};
+    static const char* tabs[] = {"Visuals", "Rage", "Settings"};
     static constexpr int tc = sizeof(tabs) / sizeof(tabs[0]);
 
     static const char* vstabs[] = {"ESP", "Other"};
@@ -102,6 +102,30 @@ namespace ui::menu {
             case 0: esp_tab(a); break;
             case 1: other_tab(a); break;
         }
+    }
+
+    static void rage_tab(float a) {
+        checkbox("No Recoil", &cfg::rage::no_recoil, a);
+        separator(a);
+        slider("Recoil horizontal", &cfg::rage::recoil_horizontal, 0.f, 1.f, a, "%.2f");
+        separator(a);
+        slider("Recoil vertical", &cfg::rage::recoil_vertical, 0.f, 1.f, a, "%.2f");
+        separator(a);
+        checkbox("No Spread", &cfg::rage::no_spread, a);
+        separator(a);
+        checkbox("Bhop", &cfg::rage::bhop, a);
+        separator(a);
+        slider("Bhop multiplier", &cfg::rage::bhop_multiplier, 1.f, 10.f, a, "%.1f");
+        separator(a);
+        checkbox("World FOV", &cfg::rage::world_fov, a);
+        separator(a);
+        slider("FOV value", &cfg::rage::world_fov_value, 30.f, 120.f, a, "%.0f");
+        separator(a);
+        checkbox("Aspect Ratio", &cfg::rage::aspect_ratio, a);
+        separator(a);
+        slider("Aspect value", &cfg::rage::aspect_ratio_value, 0.5f, 4.f, a, "%.2f");
+        separator(a);
+        checkbox("Fast Plant (C4 only)", &cfg::rage::fast_plant, a);
     }
 
     static void settings_tab(float a) {
@@ -370,7 +394,8 @@ namespace ui::menu {
 
             switch (tab) {
                 case 0: visuals_tab(ma); break;
-                case 1: settings_tab(ma); break;
+                case 1: rage_tab(ma); break;
+                case 2: settings_tab(ma); break;
             }
 
             sm = ImGui::GetScrollMaxY();

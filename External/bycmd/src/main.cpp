@@ -5,6 +5,7 @@
 #include "other/memory.hpp"
 #include "game/game.hpp"
 #include "func/visuals.hpp"
+#include "func/rage.hpp"
 #include "protect/oxorany.hpp"
 #include <cstdio>
 
@@ -78,6 +79,7 @@ int main() {
             if (run && proc::lib != 0) {
                 game::check_lib(get_player_manager());
                 visuals::draw();
+                rage::tick();
             }
         }
 
